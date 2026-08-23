@@ -268,7 +268,33 @@ export class ExtensionStore {
     });
   }
 
-  clearStates() {
-    return this.mutate((next) => { next.states = {}; });
+  clearStates(ids = null) {
+    return this.mutate((next) => {
+      const removed = {};
+      const scope = ids === null
+        ? Object.keys(next.states)
+        : [...new Set(Array.isArray(ids) ? ids.filter((id) => typeof id === 'string' && id) : [])];
+      for (const id of scope) {
+        if (!next.states[id]) continue;
+        removed[id] = next.states[id];
+        delete next.states[id];
+      }
+      return removed;
+    });
+  }
+
+  restoreStates(snapshot) {
+    return this.mutate((next) => {
+      const restored = {};
+      for (const [id, rawTimestamp] of Object.entries(cleanRecord(snapshot))) {
+        const timestamp = Number(rawTimestamp);
+        if (!id || !Number.isFinite(timestamp) || timestamp <= 0) continue;
+        const existing = Number(next.states[id]);
+        const value = Number.isFinite(existing) ? Math.max(existing, timestamp) : timestamp;
+        next.states[id] = value;
+        restored[id] = value;
+      }
+      return restored;
+    });
   }
 }

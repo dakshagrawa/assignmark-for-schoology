@@ -163,3 +163,42 @@ test('serialized mutations do not overwrite a checked state during concurrent re
   assert.equal(store.getSettings().dim, false);
   assert.equal(area.data.scCalendarData.states[resolution.id], 333);
 });
+
+test('scoped clear removes only requested checked states and returns an undo snapshot', async () => {
+  const store = new ExtensionStore(new MemoryStorageArea());
+  await store.initialize();
+  await store.setChecked('a', true, 100);
+  await store.setChecked('b', true, 200);
+  await store.setChecked('c', true, 300);
+
+  const removed = await store.clearStates(['a', 'b', 'a']);
+
+  assert.deepEqual(removed, { a: 100, b: 200 });
+  assert.equal(store.isChecked('a'), false);
+  assert.equal(store.isChecked('b'), false);
+  assert.equal(store.isChecked('c'), true);
+});
+
+test('restore cleared states preserves newer concurrent timestamps', async () => {
+  const store = new ExtensionStore(new MemoryStorageArea());
+  await store.initialize();
+  await store.setChecked('a', true, 100);
+  await store.setChecked('b', true, 200);
+  const removed = await store.clearStates(['a', 'b']);
+  await store.setChecked('a', true, 400);
+
+  await store.restoreStates(removed);
+
+  assert.deepEqual(store.snapshot().states, { a: 400, b: 200 });
+});
+
+test('scoped clear with an empty scope leaves states unchanged', async () => {
+  const store = new ExtensionStore(new MemoryStorageArea());
+  await store.initialize();
+  await store.setChecked('a', true, 100);
+
+  const removed = await store.clearStates([]);
+
+  assert.deepEqual(removed, {});
+  assert.deepEqual(store.snapshot().states, { a: 100 });
+});
