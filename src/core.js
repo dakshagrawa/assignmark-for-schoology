@@ -175,7 +175,7 @@ function parseLegacy(storage, key) {
   }
 }
 
-export class ExtensionStore {
+export class DataRepository {
   constructor(storageArea, legacyStorage = null) {
     if (!storageArea?.get || !storageArea?.set) throw new TypeError('A WebExtension storage area is required.');
     this.storageArea = storageArea;
@@ -298,3 +298,6 @@ export class ExtensionStore {
     });
   }
 }
+
+/** @deprecated Content scripts should use StorageClient; retained for migration compatibility. */
+export class ExtensionStore extends DataRepository {}
