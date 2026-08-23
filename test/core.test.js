@@ -263,3 +263,43 @@ test('scoped clear with an empty scope leaves states unchanged', async () => {
   assert.deepEqual(removed, {});
   assert.deepEqual(store.snapshot().states, { a: 100 });
 });
+
+test('clearCompleted removes only explicitly scoped checked IDs', async () => {
+  const store = new ExtensionStore(new MemoryStorageArea());
+  await store.initialize();
+  await store.setChecked('a', true, 100);
+  await store.setChecked('b', true, 200);
+  await store.setChecked('c', false, 0);
+
+  const removed = await store.clearCompleted(['a', 'b', 'a']);
+
+  assert.deepEqual(removed, { a: 100, b: 200 });
+  assert.equal(store.isChecked('a'), false);
+  assert.equal(store.isChecked('b'), false);
+  assert.equal(store.isChecked('c'), false);
+});
+
+test('clearAllStates is separately named and removes all checked IDs', async () => {
+  const store = new ExtensionStore(new MemoryStorageArea());
+  await store.initialize();
+  await store.setChecked('a', true, 100);
+  await store.setChecked('b', true, 200);
+
+  const removed = await store.clearAllStates();
+
+  assert.deepEqual(removed, { a: 100, b: 200 });
+  assert.deepEqual(store.snapshot().states, {});
+});
+
+test('clearCompleted with empty scope performs zero writes', async () => {
+  const area = new MemoryStorageArea();
+  const repository = new DataRepository(area);
+  await repository.initialize();
+  await repository.setChecked('a', true, 100);
+
+  const writeCountBefore = area.setCount;
+  await repository.clearCompleted([]);
+  const writeCountAfter = area.setCount;
+
+  assert.equal(writeCountAfter, writeCountBefore);
+});

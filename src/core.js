@@ -346,6 +346,32 @@ export class DataRepository {
     });
   }
 
+  clearCompleted(ids) {
+    if (!Array.isArray(ids) || ids.length === 0) return Promise.resolve({});
+    return this.mutate((next) => {
+      const removed = {};
+      const scope = [...new Set(ids.filter((id) => typeof id === 'string' && id))];
+      for (const id of scope) {
+        if (!next.states[id]) continue;
+        removed[id] = next.states[id];
+        delete next.states[id];
+      }
+      return removed;
+    });
+  }
+
+  clearAllStates() {
+    return this.mutate((next) => {
+      const removed = {};
+      for (const id of Object.keys(next.states)) {
+        if (!next.states[id]) continue;
+        removed[id] = next.states[id];
+        delete next.states[id];
+      }
+      return removed;
+    });
+  }
+
   restoreStates(snapshot) {
     return this.mutate((next) => {
       const restored = {};

@@ -74,6 +74,14 @@ export class StorageClient {
     return this.request('clearStates', { ids });
   }
 
+  clearCompleted(ids) {
+    return this.request('clearCompleted', { ids });
+  }
+
+  clearAllStates() {
+    return this.request('clearAllStates');
+  }
+
   restoreStates(snapshot) {
     return this.request('restoreStates', { snapshot });
   }
