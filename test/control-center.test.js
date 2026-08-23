@@ -1,10 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { JSDOM } from 'jsdom';
 import {
   VALID_FILTERS,
   isVisible,
   normalizeFilter,
-  summarizeRenderedItems
+  summarizeRenderedItems,
+  createControlCenter
 } from '../src/control-center.js';
 
 test('control center exposes the supported filters', () => {
@@ -46,4 +48,76 @@ test('control center filters checked and pending items', () => {
   assert.equal(isVisible(true, 'done'), true);
   assert.equal(isVisible(false, 'done'), false);
   assert.equal(isVisible(true, 'invalid'), true);
+});
+
+test('control center DOM component renders progress and filters', () => {
+  const dom = new JSDOM('<!doctype html><body></body>');
+  const callbacks = {
+    onFilterChange: () => {},
+    onClearView: () => {},
+    onClearAll: () => {}
+  };
+  const controlCenter = createControlCenter(dom.window.document, callbacks);
+  const element = controlCenter.element;
+
+  assert.ok(element.querySelector('[data-role="progress"]'));
+  assert.ok(element.querySelector('[data-role="filters"]'));
+  assert.ok(element.querySelector('[data-filter="all"]'));
+  assert.ok(element.querySelector('[data-filter="pending"]'));
+  assert.ok(element.querySelector('[data-filter="done"]'));
+  assert.ok(element.querySelector('[data-role="clear-view"]'));
+  assert.ok(element.querySelector('[data-role="clear-all"]'));
+  // undo button exists but is hidden initially
+  assert.ok(element.querySelector('[data-role="undo"]'));
+});
+
+test('control center DOM component updates filter pressed state on render', () => {
+  const dom = new JSDOM('<!doctype html><body></body>');
+  const controlCenter = createControlCenter(dom.window.document, {
+    onFilterChange: () => {},
+    onClearView: () => {},
+    onClearAll: () => {}
+  });
+
+  controlCenter.render({ filter: 'pending', total: 3, completed: 1 });
+
+  const buttons = controlCenter.element.querySelectorAll('[data-filter]');
+  assert.equal(buttons[0].getAttribute('aria-pressed'), 'false');
+  assert.equal(buttons[1].getAttribute('aria-pressed'), 'true');
+  assert.equal(buttons[2].getAttribute('aria-pressed'), 'false');
+});
+
+test('control center DOM component shows Undo after clear action', () => {
+  const dom = new JSDOM('<!doctype html><body></body>');
+  const controlCenter = createControlCenter(dom.window.document, {
+    onFilterChange: () => {},
+    onClearView: () => {},
+    onClearAll: () => {}
+  });
+
+  // undo button exists initially but is hidden
+  const undoBtn = controlCenter.element.querySelector('[data-role="undo"]');
+  assert.ok(undoBtn);
+  assert.ok(undoBtn.hidden);
+
+  controlCenter.showUndo(true);
+  assert.ok(!undoBtn.hidden);
+
+  controlCenter.showUndo(false);
+  assert.ok(undoBtn.hidden);
+});
+
+test('control center DOM component prevents duplicate elements on repeated render', () => {
+  const dom = new JSDOM('<!doctype html><body></body>');
+  const controlCenter = createControlCenter(dom.window.document, {
+    onFilterChange: () => {},
+    onClearView: () => {},
+    onClearAll: () => {}
+  });
+
+  controlCenter.render({ filter: 'all', total: 1, completed: 0 });
+  controlCenter.render({ filter: 'all', total: 1, completed: 0 });
+
+  assert.equal(controlCenter.element.querySelectorAll('[data-role="progress"]').length, 1);
+  assert.equal(controlCenter.element.querySelectorAll('[data-filter]').length, 3);
 });
