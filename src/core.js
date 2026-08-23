@@ -143,6 +143,55 @@ export function buildIdCandidates(node, origin = globalThis.location?.origin ?? 
   };
 }
 
+/**
+ * Pure resolution: given a validated snapshot and candidates, return the resolved
+ * id, checked state, and whether any alias/state/idMap changes were made.
+ * Does NOT mutate storage; the caller must commit via mutate().
+ */
+export function resolveCandidates(data, candidates) {
+  const { canonical, fallbackId, legacyIds, aliases } = candidates;
+  const mappedIds = aliases.map((alias) => data.idMap[alias]).filter(Boolean);
+  const target = canonical || mappedIds[0] || fallbackId;
+  const sourceIds = new Set([fallbackId, ...legacyIds, ...mappedIds]);
+
+  const checkedValues = [data.states[target], ...[...sourceIds].map((id) => data.states[id])]
+    .filter((value) => Number.isFinite(Number(value)))
+    .map(Number);
+
+  let changed = false;
+  const newStates = { ...data.states };
+  const newIdMap = { ...data.idMap };
+
+  if (checkedValues.length) {
+    const maxTimestamp = Math.max(...checkedValues);
+    if (!Number.isFinite(newStates[target]) || newStates[target] !== maxTimestamp) {
+      newStates[target] = maxTimestamp;
+      changed = true;
+    }
+  }
+
+  for (const sourceId of sourceIds) {
+    if (sourceId !== target && newStates[sourceId] !== undefined) {
+      delete newStates[sourceId];
+      changed = true;
+    }
+  }
+
+  for (const alias of aliases) {
+    if (newIdMap[alias] !== target) {
+      newIdMap[alias] = target;
+      changed = true;
+    }
+  }
+
+  const resolution = { id: target, checked: Boolean(newStates[target]) };
+  return {
+    resolution,
+    changed,
+    next: changed ? { ...data, states: newStates, idMap: newIdMap } : data
+  };
+}
+
 function cleanRecord(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? { ...value } : {};
 }
@@ -234,21 +283,35 @@ export class DataRepository {
   async resolve(candidates) {
     let resolved;
     await this.mutate((next) => {
-      const mappedIds = candidates.aliases.map((alias) => next.idMap[alias]).filter(Boolean);
-      const target = candidates.canonical || mappedIds[0] || candidates.fallbackId;
-      const sourceIds = new Set([candidates.fallbackId, ...candidates.legacyIds, ...mappedIds]);
-      const checkedValues = [next.states[target], ...[...sourceIds].map((id) => next.states[id])]
-        .filter((value) => Number.isFinite(Number(value)))
-        .map(Number);
-
-      if (checkedValues.length) next.states[target] = Math.max(...checkedValues);
-      for (const sourceId of sourceIds) {
-        if (sourceId !== target) delete next.states[sourceId];
+      const result = resolveCandidates(next, candidates);
+      resolved = result.resolution;
+      if (result.changed) {
+        Object.assign(next, result.next);
       }
-      for (const alias of candidates.aliases) next.idMap[alias] = target;
-      resolved = { id: target, checked: Boolean(next.states[target]) };
     });
     return resolved;
+  }
+
+  async resolveMany(candidatesList) {
+    if (!Array.isArray(candidatesList) || candidatesList.length === 0) return [];
+    // First, pure pass to see if any resolution would change state/aliases
+    let workingData = this.snapshot();
+    let changed = false;
+    const resolutions = [];
+    for (const candidates of candidatesList) {
+      const result = resolveCandidates(workingData, candidates);
+      resolutions.push(result.resolution);
+      if (result.changed) {
+        changed = true;
+        workingData = result.next;
+      }
+    }
+    if (!changed) return resolutions;
+    // Something changed: commit once via mutate
+    await this.mutate((next) => {
+      Object.assign(next, workingData);
+    });
+    return resolutions;
   }
 
   setChecked(id, checked, timestamp = Date.now()) {

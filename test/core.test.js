@@ -3,19 +3,21 @@ import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
 import {
   DEFAULT_SETTINGS,
+  DataRepository,
   ExtensionStore,
   buildIdCandidates,
-  shortHash
+  shortHash,
+  resolveCandidates
 } from '../src/core.js';
 
 class MemoryStorageArea {
-  constructor(initial = {}) { this.data = structuredClone(initial); }
+  constructor(initial = {}) { this.data = structuredClone(initial); this.setCount = 0; }
   async get(keys) {
     if (keys == null) return structuredClone(this.data);
     const names = Array.isArray(keys) ? keys : [keys];
     return Object.fromEntries(names.filter((key) => key in this.data).map((key) => [key, structuredClone(this.data[key])]));
   }
-  async set(values) { Object.assign(this.data, structuredClone(values)); }
+  async set(values) { this.setCount += 1; Object.assign(this.data, structuredClone(values)); }
 }
 
 function eventNode(html, url = 'https://fuhsd.schoology.com/calendar') {
@@ -143,6 +145,65 @@ test('regression: checked fallback survives rerender when sibling path shifts', 
   const third = await reloaded.resolve(afterCandidates);
   assert.equal(third.id, first.id);
   assert.equal(reloaded.isChecked(third.id), true);
+});
+
+test('coordinator serializes independent tab mutations without losing state', async () => {
+  const area = new MemoryStorageArea();
+  const repository = new DataRepository(area);
+  await repository.initialize();
+
+  await Promise.all([
+    repository.setChecked('id-a', true, 100),
+    repository.setChecked('id-b', true, 200)
+  ]);
+
+  const persisted = (await area.get(['scCalendarData'])).scCalendarData;
+  assert.deepEqual(persisted.states, { 'id-a': 100, 'id-b': 200 });
+});
+
+test('pure resolveCandidates does not mutate storage and returns changed flag', async () => {
+  const area = new MemoryStorageArea();
+  const repository = new DataRepository(area);
+  await repository.initialize();
+
+  const { node } = eventNode('<div class="fc-event"><span class="fc-event-time">9:00 AM</span><span class="fc-event-title">Quiz</span></div>');
+  const candidates = buildIdCandidates(node, 'https://fuhsd.schoology.com');
+
+  // First resolution with empty snapshot - adds aliases
+  let snapshot = repository.snapshot();
+  const first = resolveCandidates(snapshot, candidates);
+  assert.equal(first.resolution.checked, false);
+  assert.equal(first.changed, true);
+
+  // Apply the first result and resolve again - no changes
+  snapshot = first.next;
+  const second = resolveCandidates(snapshot, candidates);
+  assert.deepEqual(second.resolution, first.resolution);
+  assert.equal(second.changed, false);
+});
+
+test('repository resolveMany commits at most once per scan', async () => {
+  const area = new MemoryStorageArea();
+  const repository = new DataRepository(area);
+  await repository.initialize();
+
+  const { node: nodeA } = eventNode('<div class="fc-event"><span class="fc-event-time">9 AM</span><span class="fc-event-title">Study</span></div>');
+  const { node: nodeB } = eventNode('<div class="fc-event"><span class="fc-event-time">10 AM</span><span class="fc-event-title">Lab</span></div>');
+  const candidatesA = buildIdCandidates(nodeA, 'https://fuhsd.schoology.com');
+  const candidatesB = buildIdCandidates(nodeB, 'https://fuhsd.schoology.com');
+
+  const writeCountBefore = area.setCount;
+
+  // First scan: adds aliases for both items
+  await repository.resolveMany([candidatesA, candidatesB]);
+  const writeCountAfterFirst = area.setCount;
+
+  // Second scan with same items: no writes needed
+  await repository.resolveMany([candidatesA, candidatesB]);
+  const writeCountAfterSecond = area.setCount;
+
+  assert.ok(writeCountAfterFirst > writeCountBefore, 'first scan should write');
+  assert.equal(writeCountAfterSecond, writeCountAfterFirst, 'second scan should not write');
 });
 
 test('serialized mutations do not overwrite a checked state during concurrent resolution', async () => {
