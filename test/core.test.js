@@ -81,6 +81,28 @@ test('persists checkbox states and settings in extension storage', async () => {
   assert.deepEqual(reloaded.getSettings(), { ...DEFAULT_SETTINGS, hide: true });
 });
 
+test('filter setting defaults to all', async () => {
+  const store = new ExtensionStore(new MemoryStorageArea());
+  await store.initialize();
+  assert.equal(store.getSettings().filter, 'all');
+});
+
+test('filter setting migrates legacy hide and rejects invalid values', async () => {
+  const hiddenArea = new MemoryStorageArea({
+    scCalendarData: { states: {}, settings: { hide: true, dim: true }, idMap: {} }
+  });
+  const hiddenStore = new ExtensionStore(hiddenArea);
+  await hiddenStore.initialize();
+  assert.equal(hiddenStore.getSettings().filter, 'pending');
+
+  const invalidArea = new MemoryStorageArea({
+    scCalendarData: { states: {}, settings: { hide: false, dim: true, filter: 'surprise' }, idMap: {} }
+  });
+  const invalidStore = new ExtensionStore(invalidArea);
+  await invalidStore.initialize();
+  assert.equal(invalidStore.getSettings().filter, 'all');
+});
+
 test('reconciles fallback state into a canonical ID without losing the checked value', async () => {
   const area = new MemoryStorageArea();
   const store = new ExtensionStore(area);

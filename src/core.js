@@ -1,6 +1,7 @@
 export const DATA_KEY = 'scCalendarData';
 export const DATA_VERSION = 3;
-export const DEFAULT_SETTINGS = Object.freeze({ hide: false, dim: true });
+export const FILTER_MODES = Object.freeze(['all', 'pending', 'done']);
+export const DEFAULT_SETTINGS = Object.freeze({ hide: false, dim: true, filter: 'all' });
 
 const LEGACY_KEYS = Object.freeze({
   states: 'sc_cal_checkbox_states_calendar_only',
@@ -146,12 +147,22 @@ function cleanRecord(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? { ...value } : {};
 }
 
+function normalizeSettings(value) {
+  const settings = cleanRecord(value);
+  const filter = FILTER_MODES.includes(settings.filter)
+    ? settings.filter
+    : settings.hide
+      ? 'pending'
+      : 'all';
+  return { ...DEFAULT_SETTINGS, ...settings, filter };
+}
+
 function cleanData(value) {
   const data = cleanRecord(value);
   return {
     version: DATA_VERSION,
     states: cleanRecord(data.states),
-    settings: { ...DEFAULT_SETTINGS, ...cleanRecord(data.settings) },
+    settings: normalizeSettings(data.settings),
     idMap: cleanRecord(data.idMap)
   };
 }
@@ -253,7 +264,7 @@ export class ExtensionStore {
 
   updateSettings(patch) {
     return this.mutate((next) => {
-      next.settings = { ...DEFAULT_SETTINGS, ...next.settings, ...cleanRecord(patch) };
+      next.settings = normalizeSettings({ ...next.settings, ...cleanRecord(patch) });
     });
   }
 
