@@ -1,0 +1,13 @@
+.sc-cal-left-wrapper { display:inline-flex; align-items:center; gap:6px; margin-right:6px; vertical-align:middle; }
+.sc-cal-left-checkbox { width:13.5px; height:13.5px; margin:0; padding:0; cursor:pointer; accent-color:#0078d4; transform:scale(.95); border-radius:2px; }
+.sc-cal-left-checkbox:focus-visible, .sc-icon-btn:focus-visible { outline:3px solid #ffbf47; outline-offset:2px; }
+.sc-checked-dim { opacity:.55 !important; color:#333 !important; text-decoration:line-through !important; transition:none !important; }
+.sc-hidden-checked { display:none !important; transition:none !important; }
+.sc-cal-toolbar { position:fixed; right:12px; bottom:70px; z-index:2147483000; display:flex; flex-direction:column; gap:8px; align-items:center; }
+.sc-cal-toolbar .sc-icon-btn { width:52px; height:52px; padding:0; display:inline-flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; border-radius:10px; background:#fff; border:1px solid #e6e6e6; box-shadow:0 6px 18px rgba(0,0,0,.08); cursor:pointer; font:inherit; }
+.sc-cal-toolbar .sc-icon-btn svg { width:20px; height:20px; fill:#444; }
+.sc-cal-toolbar .sc-label { font-size:11px; color:#444; line-height:1; }
+.sc-cal-toolbar .sc-icon-btn[aria-pressed="true"] { background:#0078d4; border-color:transparent; }
+.sc-cal-toolbar .sc-icon-btn[aria-pressed="true"] svg { fill:#fff; }
+.sc-cal-toolbar .sc-icon-btn[aria-pressed="true"] .sc-label { color:#fff; }
+.sc-cal-error { position:fixed; left:50%; bottom:20px; z-index:2147483647; transform:translateX(-50%); max-width:min(90vw,520px); padding:10px 14px; border-radius:6px; color:#fff; background:#a4262c; box-shadow:0 4px 12px rgba(0,0,0,.25); font:14px/1.4 sans-serif; }
