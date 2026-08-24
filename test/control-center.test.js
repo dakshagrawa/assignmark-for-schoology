@@ -70,6 +70,7 @@ test('control center DOM component renders progress and filters', () => {
   const dom = new JSDOM('<!doctype html><body></body>');
   const callbacks = {
     onFilterChange: () => {},
+    onDimChange: () => {},
     onClearView: () => {},
     onClearAll: () => {}
   };
@@ -83,6 +84,7 @@ test('control center DOM component renders progress and filters', () => {
   assert.ok(element.querySelector('[data-filter="done"]'));
   assert.ok(element.querySelector('[data-role="clear-view"]'));
   assert.ok(element.querySelector('[data-role="clear-all"]'));
+  assert.ok(element.querySelector('[data-role="dim"]'));
   // undo button exists but is hidden initially
   assert.ok(element.querySelector('[data-role="undo"]'));
 });
@@ -91,22 +93,25 @@ test('control center DOM component updates filter pressed state on render', () =
   const dom = new JSDOM('<!doctype html><body></body>');
   const controlCenter = createControlCenter(dom.window.document, {
     onFilterChange: () => {},
+    onDimChange: () => {},
     onClearView: () => {},
     onClearAll: () => {}
   });
 
-  controlCenter.render({ filter: 'pending', total: 3, completed: 1 });
+  controlCenter.render({ filter: 'pending', dim: false, total: 3, completed: 1 });
 
   const buttons = controlCenter.element.querySelectorAll('[data-filter]');
   assert.equal(buttons[0].getAttribute('aria-pressed'), 'false');
   assert.equal(buttons[1].getAttribute('aria-pressed'), 'true');
   assert.equal(buttons[2].getAttribute('aria-pressed'), 'false');
+  assert.equal(controlCenter.element.querySelector('[data-role="dim"]').getAttribute('aria-pressed'), 'false');
 });
 
 test('control center DOM component shows Undo after clear action', () => {
   const dom = new JSDOM('<!doctype html><body></body>');
   const controlCenter = createControlCenter(dom.window.document, {
     onFilterChange: () => {},
+    onDimChange: () => {},
     onClearView: () => {},
     onClearAll: () => {}
   });
@@ -127,6 +132,7 @@ test('control center DOM component prevents duplicate elements on repeated rende
   const dom = new JSDOM('<!doctype html><body></body>');
   const controlCenter = createControlCenter(dom.window.document, {
     onFilterChange: () => {},
+    onDimChange: () => {},
     onClearView: () => {},
     onClearAll: () => {}
   });

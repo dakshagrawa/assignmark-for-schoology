@@ -54,6 +54,37 @@ test('storage client receives a validated snapshot after each mutation', async (
   assert.equal(first.snapshot().states['id-a'], 100);
 });
 
+test('storage client batches candidate resolution through the coordinator', async () => {
+  const { first } = clientPair();
+  await first.initialize();
+  const candidates = [{
+    canonical: 'href::/assignment/1',
+    fallbackId: 'cal::fallback',
+    legacyIds: [],
+    aliases: ['semantic::one']
+  }];
+
+  const resolutions = await first.resolveMany(candidates);
+
+  assert.equal(resolutions.length, 1);
+  assert.equal(resolutions[0].id, 'href::/assignment/1');
+  assert.equal(first.snapshot().idMap['semantic::one'], 'href::/assignment/1');
+});
+
+test('coordinator imports page legacy data only when extension storage is empty', async () => {
+  const { first } = clientPair();
+
+  await first.initialize({
+    states: { 'legacy-id': 123 },
+    settings: { hide: true, dim: false },
+    idMap: { 'legacy-alias': 'legacy-id' }
+  });
+
+  assert.equal(first.isChecked('legacy-id'), true);
+  assert.equal(first.getSettings().filter, 'pending');
+  assert.equal(first.snapshot().idMap['legacy-alias'], 'legacy-id');
+});
+
 test('coordinator rejects unknown message operations', async () => {
   const { repository } = clientPair();
   const handle = createStorageMessageHandler(repository);

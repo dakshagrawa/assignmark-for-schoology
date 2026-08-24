@@ -86,6 +86,8 @@ export function createControlCenter(doc, callbacks) {
 
   const actions = doc.createElement('div');
   actions.className = 'sc-cc-actions';
+  const btnDim = makeButton(doc, 'sc-cc-dim', ICONS.filterDone, 'Dim', true);
+  btnDim.setAttribute('data-role', 'dim');
   const btnClearView = makeButton(doc, 'sc-cc-clear-view', ICONS.clear, 'Clear view');
   btnClearView.setAttribute('data-role', 'clear-view');
   const btnClearAll = makeButton(doc, 'sc-cc-clear-all', ICONS.clear, 'Clear all');
@@ -93,7 +95,7 @@ export function createControlCenter(doc, callbacks) {
   const btnUndo = makeButton(doc, 'sc-cc-undo', ICONS.undo, 'Undo');
   btnUndo.hidden = true;
   btnUndo.setAttribute('data-role', 'undo');
-  actions.append(btnClearView, btnClearAll, btnUndo);
+  actions.append(btnDim, btnClearView, btnClearAll, btnUndo);
   container.appendChild(actions);
 
   const toggle = doc.createElement('button');
@@ -124,6 +126,7 @@ export function createControlCenter(doc, callbacks) {
     callbacks.onFilterChange?.('done');
   });
 
+  btnDim.addEventListener('click', () => callbacks.onDimChange?.());
   btnClearView.addEventListener('click', () => callbacks.onClearView?.());
   btnClearAll.addEventListener('click', () => callbacks.onClearAll?.());
   btnUndo.addEventListener('click', () => callbacks.onUndo?.());
@@ -148,8 +151,9 @@ export function createControlCenter(doc, callbacks) {
     btnUndo.hidden = !show;
   }
 
-  function render({ filter, total, completed }) {
+  function render({ filter, dim, total, completed }) {
     setFilterPressed(filter);
+    btnDim.setAttribute('aria-pressed', String(Boolean(dim)));
     summary.textContent = `${completed} of ${total} shown items completed`;
   }
 

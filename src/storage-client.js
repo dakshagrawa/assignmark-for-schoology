@@ -70,6 +70,10 @@ export class StorageClient {
     return this.request('resolve', { candidates });
   }
 
+  resolveMany(candidatesList) {
+    return this.request('resolveMany', { candidatesList });
+  }
+
   clearStates(ids) {
     return this.request('clearStates', { ids });
   }

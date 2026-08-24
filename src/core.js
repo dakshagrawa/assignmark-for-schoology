@@ -234,10 +234,13 @@ export class DataRepository {
     this.initialized = false;
   }
 
-  async initialize() {
+  async initialize(legacyData = null) {
     const stored = await this.storageArea.get([DATA_KEY]);
     if (stored[DATA_KEY]) {
       this.data = cleanData(stored[DATA_KEY]);
+    } else if (legacyData) {
+      this.data = cleanData(legacyData);
+      await this.storageArea.set({ [DATA_KEY]: this.data });
     } else {
       this.data = cleanData({
         states: parseLegacy(this.legacyStorage, LEGACY_KEYS.states),

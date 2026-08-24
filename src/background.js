@@ -28,6 +28,9 @@ export function createStorageMessageHandler(repository) {
       case 'resolve':
         result = await repository.resolve(message.candidates);
         break;
+      case 'resolveMany':
+        result = await repository.resolveMany(message.candidatesList);
+        break;
       case 'clearCompleted':
         result = await repository.clearCompleted(message.ids);
         break;
