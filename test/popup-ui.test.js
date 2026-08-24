@@ -35,7 +35,7 @@ test('settings popup derives readable foreground tokens for extreme custom accen
     checkedCount: 1
   });
 
-  assert.equal(popup.element.style.getPropertyValue('--accent-foreground'), '#111111');
+  assert.equal(popup.element.style.getPropertyValue('--accent-foreground'), '#000000');
 });
 
 test('settings popup explains global reset and disables it when nothing is saved', () => {

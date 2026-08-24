@@ -112,11 +112,12 @@ test('filter setting defaults to all', async () => {
 });
 
 test('accent foreground remains readable for light and dark custom colors', () => {
-  assert.equal(accentForeground('#ffffff'), '#111111');
+  assert.equal(accentForeground('#ffffff'), '#000000');
   assert.equal(accentForeground('#000000'), '#ffffff');
-  assert.equal(accentForeground('#ffea00'), '#111111');
-  assert.equal(accentForeground('#0078d4'), '#111111');
-  assert.equal(accentForeground('#888888'), '#111111');
+  assert.equal(accentForeground('#ffea00'), '#000000');
+  assert.equal(accentForeground('#0078d4'), '#000000');
+  assert.equal(accentForeground('#888888'), '#000000');
+  assert.equal(accentForeground('#777777'), '#000000');
 });
 
 test('accent color defaults, normalizes, and rejects unsafe CSS values', async () => {

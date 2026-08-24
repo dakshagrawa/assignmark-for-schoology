@@ -146,7 +146,7 @@ test('calendar rail derives readable foreground tokens for extreme custom accent
 
   controlCenter.render({ filter: 'all', dim: true, total: 1, completed: 1, accentColor: '#ffffff' });
 
-  assert.equal(controlCenter.element.style.getPropertyValue('--sc-assignmark-accent-foreground'), '#111111');
+  assert.equal(controlCenter.element.style.getPropertyValue('--sc-assignmark-accent-foreground'), '#000000');
 });
 
 test('current-view reset stays disabled while a reset is pending', () => {
