@@ -21,5 +21,5 @@ test('settings popup exposes theme adaptation and customizable control settings'
   assert.match(css, /prefers-color-scheme:dark/);
   assert.match(css, /control-preferences/);
   assert.match(css, /visibility-option/);
-  assert.match(css, /size-setting/);
+  assert.match(css, /\.size-setting output\{color:var\(--popup-text,#1d1d1f\)\}/);
 });
