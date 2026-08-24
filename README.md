@@ -104,4 +104,6 @@ The controls remain in an in-page calendar control center, where their current-v
 
 ## License
 
-No open-source license has been selected yet. Add one before inviting external reuse or contributions.
+This project is licensed under the [MIT License](LICENSE).
+
+Copyright (c) 2026 Daksh Agrawal.
