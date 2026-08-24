@@ -1,6 +1,6 @@
 # Chrome Web Store submission guide
 
-This guide is specific to **Assignmark: Schoology Checkoffs 2.1.0**. Recheck store policy pages before submission because dashboard fields and policies change.
+This guide is specific to **Assignmark: Schoology Checkoffs 2.1.1**. Recheck store policy pages before submission because dashboard fields and policies change.
 
 ## 1. Create the developer account
 
@@ -26,7 +26,7 @@ Then load `load-unpacked/` from `chrome://extensions` in a clean profile and tes
 - Dim; All/Pending/Done filters; scoped Clear view; global Clear all; and one-level Undo (including canceling each clear confirmation);
 - browser console has no extension errors.
 
-Upload `assignmark-for-schoology-2.1.0.zip`. `manifest.json` is at the ZIP root. The package contains one local MV3 service worker used only to serialize `chrome.storage.local` mutations across Schoology tabs; it contains no remote script, source map, secret, or test fixture.
+Upload `assignmark-for-schoology-2.1.1.zip`. `manifest.json` is at the ZIP root. The package contains one local MV3 service worker used only to serialize `chrome.storage.local` mutations across Schoology tabs; it contains no remote script, source map, secret, or test fixture.
 
 ## 3. Prepare listing assets separately
 

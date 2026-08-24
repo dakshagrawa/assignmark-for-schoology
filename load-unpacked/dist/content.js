@@ -332,7 +332,9 @@
     summary.className = "sc-cc-summary";
     summary.setAttribute("data-role", "progress");
     summary.setAttribute("aria-live", "polite");
-    summary.textContent = "0 of 0 current-view items completed";
+    summary.setAttribute("aria-label", "0 of 0 current-view items completed");
+    summary.title = "0 of 0 current-view items completed";
+    summary.textContent = "0/0";
     container.appendChild(summary);
     const filters = doc.createElement("div");
     filters.className = "sc-cc-filters";
@@ -396,7 +398,10 @@
     function render2({ filter, dim, total, completed }) {
       setFilterPressed(filter);
       btnDim.setAttribute("aria-pressed", String(Boolean(dim)));
-      summary.textContent = `${completed} of ${total} current-view items completed`;
+      const progressLabel = `${completed} of ${total} current-view items completed`;
+      summary.textContent = `${completed}/${total}`;
+      summary.setAttribute("aria-label", progressLabel);
+      summary.title = progressLabel;
     }
     return {
       element: container,
