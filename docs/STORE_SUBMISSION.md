@@ -1,6 +1,6 @@
 # Chrome Web Store submission guide
 
-This guide is specific to **Assignmark: Schoology Checkoffs 2.2.1**. Recheck store policy pages before submission because dashboard fields and policies change.
+This guide is specific to **Assignmark: Schoology Checkoffs 2.2.2**. Recheck store policy pages before submission because dashboard fields and policies change.
 
 ## 1. Create the developer account
 
