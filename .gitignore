@@ -1,6 +1,5 @@
 node_modules/
 dist/
-load-unpacked/
 *.zip
 .DS_Store
 coverage/

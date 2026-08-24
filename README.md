@@ -60,7 +60,7 @@ npm test
 npm run build
 ```
 
-- **Load-unpacked directory:** choose `load-unpacked/` after running `npm run build`.
+- **Ready-to-load Chrome folder:** `load-unpacked/` is committed to the repository so users can clone or download the source and load it immediately. Running `npm run build` refreshes this folder.
 - **Store ZIP:** `assignmark-for-schoology-2.1.0.zip`.
 
 `npm run build` creates:
@@ -73,10 +73,10 @@ npm run build
 
 ## Load unpacked in Chrome
 
-1. Run `npm run build`.
+1. Clone this repository or download and extract its source archive. The committed `load-unpacked/` folder is ready to use; developers can refresh it with `npm run build`.
 2. Open `chrome://extensions`.
 3. Enable **Developer mode**.
-4. Click **Load unpacked** and choose `/home/daksh/assignmark-for-schoology/load-unpacked/` (or the `load-unpacked/` folder in your checkout).
+4. Click **Load unpacked** and choose the repository's `load-unpacked/` folder.
 5. Open the FUHSD Schoology calendar and confirm each item receives one checkbox.
 6. Check both canonical and linkless events, navigate calendar views, and reload to verify persistence.
 7. Test **All/Pending/Done**, **Dim**, **Clear view**, **Clear all**, and **Undo**. Both clear actions require count-specific confirmation.
