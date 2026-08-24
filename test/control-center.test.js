@@ -226,3 +226,22 @@ test('control center applies visibility, percentage scale, and move overlay sett
   controlCenter.element.querySelector('.sc-cc-lock').click();
   assert.deepEqual(calls, ['lock']);
 });
+
+test('move mode disables normal actions and blocks their callbacks', () => {
+  const dom = new JSDOM('<!doctype html><body></body>');
+  const calls = [];
+  const controlCenter = createControlCenter(dom.window.document, {
+    onFilterChange: () => calls.push('filter'),
+    onDimChange: () => calls.push('dim'),
+    onClearView: () => calls.push('clear'),
+    onUndo: () => calls.push('undo')
+  });
+  controlCenter.render({ filter: 'all', total: 3, completed: 1, moveMode: true });
+  for (const role of ['hide-done', 'dim', 'clear-view', 'undo']) {
+    const button = controlCenter.element.querySelector(`[data-role="${role}"]`);
+    button.click();
+    assert.equal(button.disabled, true);
+    assert.equal(button.getAttribute('aria-disabled'), 'true');
+  }
+  assert.deepEqual(calls, []);
+});

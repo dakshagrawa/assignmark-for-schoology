@@ -1,6 +1,9 @@
-# Changelog
+## 2.2.2 — 2026-08-24
 
-All notable changes to Assignmark are documented here.
+### Fixed
+
+- Move controls mode now disables and guards all normal rail actions, including keyboard/programmatic activation, until the position is locked.
+- Updated store/privacy disclosure guidance to include persisted control scale, visibility, move-mode state, and rail position.
 
 ## 2.2.1 — 2026-08-24
 
