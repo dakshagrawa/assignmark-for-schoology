@@ -103,9 +103,9 @@ test('calendar rail restores the focused v2.0-style three-control format', () =>
   assert.ok(element.querySelector('[data-role="hide-done"]'));
   assert.ok(element.querySelector('[data-role="dim"]'));
   assert.ok(element.querySelector('[data-role="clear-view"]'));
-  assert.equal(element.querySelector('[data-role="hide-done"] span').textContent, 'Hide done');
-  assert.equal(element.querySelector('[data-role="dim"] span').textContent, 'Fade done');
-  assert.equal(element.querySelector('[data-role="clear-view"] span').textContent, 'Reset view');
+  assert.equal(element.querySelector('[data-role="hide-done"] span').textContent, 'Hide');
+  assert.equal(element.querySelector('[data-role="dim"] span').textContent, 'Dim');
+  assert.equal(element.querySelector('[data-role="clear-view"] span').textContent, 'Clear');
   assert.equal(element.querySelector('[data-role="clear-all"]'), null);
   assert.equal(element.querySelector('[data-role="filters"]'), null);
   assert.equal(element.querySelector('.sc-cc-toggle'), null);
@@ -136,7 +136,7 @@ test('control center DOM component maps pending filter to the Hide done control'
 
   const hideDone = controlCenter.element.querySelector('[data-role="hide-done"]');
   assert.equal(hideDone.getAttribute('aria-pressed'), 'true');
-  assert.equal(hideDone.querySelector('span').textContent, 'Hide done');
+  assert.equal(hideDone.querySelector('span').textContent, 'Show');
   assert.equal(controlCenter.element.querySelector('[data-role="dim"]').getAttribute('aria-pressed'), 'false');
 });
 
@@ -167,7 +167,7 @@ test('current-view reset explains its scope and disables itself when there is no
 
   controlCenter.render({ filter: 'all', dim: true, total: 23, completed: 0 });
   assert.equal(resetView.disabled, true);
-  assert.equal(resetView.textContent.trim(), 'Reset view');
+  assert.equal(resetView.textContent.trim(), 'Clear');
   assert.equal(resetView.title, 'No completed items in this calendar view.');
 
   controlCenter.render({ filter: 'all', dim: true, total: 23, completed: 2 });
