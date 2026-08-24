@@ -1,3 +1,7 @@
+# Changelog
+
+All notable changes to Assignmark are documented here.
+
 ## 2.2.2 — 2026-08-24
 
 ### Fixed
