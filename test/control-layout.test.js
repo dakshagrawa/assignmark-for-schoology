@@ -45,6 +45,7 @@ test('move controls use a separate opaque palette instead of an overlay cover', 
   const overlayRule = css.match(/\.sc-cc-move-overlay\s*\{([^}]*)\}/)?.[1] || '';
   assert.match(overlayRule, /right\s*:\s*calc\(100% \+ 8px\)/);
   assert.match(overlayRule, /background\s*:\s*var\(--sc-surface\)/);
+  assert.match(overlayRule, /box-sizing\s*:\s*border-box/);
   assert.match(overlayRule, /width\s*:\s*min\(108px,calc\(100vw - 72px\)\)/);
   assert.match(overlayRule, /border-radius\s*:\s*10px/);
   assert.doesNotMatch(overlayRule, /dashed|blur\(/);
