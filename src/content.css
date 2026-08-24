@@ -1,36 +1,36 @@
 .sc-cal-left-wrapper { display:inline-flex; align-items:center; gap:6px; margin-right:6px; vertical-align:middle; }
 .sc-cal-left-checkbox { width:14px; height:14px; margin:0; padding:0; cursor:pointer; accent-color:var(--sc-assignmark-accent,#0a84ff); border-radius:2px; }
-.sc-cal-left-checkbox:focus-visible, .sc-cc button:focus-visible { outline:2px solid #fff; outline-offset:2px; box-shadow:0 0 0 4px #111 !important; }
+.sc-cal-left-checkbox:focus-visible, .sc-cc button:focus-visible { outline:3px solid #ffbf47; outline-offset:2px; }
 .sc-checked-dim { opacity:.48 !important; color:#606060 !important; text-decoration:line-through !important; transition:none !important; }
 .sc-filtered-out { display:none !important; transition:none !important; }
 
-.sc-cc { position:fixed; right:var(--sc-control-right,12px); bottom:var(--sc-control-bottom,70px); z-index:2147483000; box-sizing:border-box; width:calc(60px * var(--sc-control-scale,1)); max-height:calc(100vh - 84px); display:flex; flex-direction:column; gap:8px; align-items:center; overflow-y:auto; padding:2px; color:#1d1d1f; font:11px/1.1 system-ui,-apple-system,"SF Pro Text","Segoe UI",sans-serif; scrollbar-width:none; --sc-surface:rgba(250,250,252,.88); --sc-surface-hover:rgba(245,245,247,.96); --sc-border:rgba(0,0,0,.09); --sc-shadow:0 6px 22px rgba(0,0,0,.14); }
+/* v2.0-style calendar rail: opaque, compact tiles—not a glass overlay. */
+.sc-cc { position:fixed; right:var(--sc-control-right,12px); bottom:var(--sc-control-bottom,70px); z-index:2147483000; box-sizing:border-box; width:calc(52px * var(--sc-control-scale,1)); max-height:calc(100vh - 84px); display:flex; flex-direction:column; gap:8px; align-items:center; overflow-y:auto; padding:0; color:#444; font:11px/1 system-ui,-apple-system,"SF Pro Text","Segoe UI",sans-serif; scrollbar-width:none; --sc-surface:#fff; --sc-surface-hover:#fafafa; --sc-border:#e6e6e6; --sc-shadow:0 6px 18px rgba(0,0,0,.08); }
 .sc-cc::-webkit-scrollbar { display:none; }
-.sc-cc-summary { box-sizing:border-box; width:52px; min-height:24px; padding:5px 3px; border:1px solid var(--sc-border); border-radius:999px; background:var(--sc-surface); box-shadow:0 3px 12px rgba(0,0,0,.08); backdrop-filter:saturate(180%) blur(20px); -webkit-backdrop-filter:saturate(180%) blur(20px); font-size:10px; font-weight:600; letter-spacing:-.08px; text-align:center; }
-.sc-cc .sc-icon-btn { box-sizing:border-box; width:calc(60px * var(--sc-control-scale,1)); height:calc(60px * var(--sc-control-scale,1)); min-width:calc(60px * var(--sc-control-scale,1)); min-height:calc(60px * var(--sc-control-scale,1)); padding:6px 3px 5px; display:inline-flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; border:1px solid var(--sc-border); border-radius:12px; background:var(--sc-surface); color:inherit; box-shadow:var(--sc-shadow); backdrop-filter:saturate(180%) blur(20px); -webkit-backdrop-filter:saturate(180%) blur(20px); cursor:pointer; font:inherit; letter-spacing:-.08px; text-align:center; transition:transform .14s ease,background-color .14s ease,box-shadow .14s ease; }
-.sc-cc .sc-icon-btn:hover:not(:disabled) { background:var(--sc-surface-hover); transform:translateY(-1px); box-shadow:0 8px 24px rgba(0,0,0,.17); }
-.sc-cc .sc-icon-btn:active:not(:disabled) { transform:scale(.96); }
-.sc-cc .sc-icon-btn:disabled { cursor:not-allowed; opacity:.42; box-shadow:0 3px 10px rgba(0,0,0,.08); }
+.sc-cc-summary { box-sizing:border-box; width:44px; min-height:22px; padding:5px 3px; border:1px solid var(--sc-border); border-radius:999px; background:var(--sc-surface); box-shadow:0 3px 10px rgba(0,0,0,.06); font-size:10px; font-weight:650; letter-spacing:-.12px; text-align:center; }
+.sc-cc .sc-icon-btn { box-sizing:border-box; width:calc(52px * var(--sc-control-scale,1)); height:calc(52px * var(--sc-control-scale,1)); min-width:calc(52px * var(--sc-control-scale,1)); min-height:calc(52px * var(--sc-control-scale,1)); padding:5px 2px; display:inline-flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; border:1px solid var(--sc-border); border-radius:10px; background:var(--sc-surface); color:inherit; box-shadow:var(--sc-shadow); cursor:pointer; font:inherit; letter-spacing:0; text-align:center; transition:transform .14s ease,background-color .14s ease,box-shadow .14s ease; }
+.sc-cc .sc-icon-btn:hover:not(:disabled) { background:var(--sc-surface-hover); transform:translateY(-1px); box-shadow:0 8px 20px rgba(0,0,0,.12); }
+.sc-cc .sc-icon-btn:active:not(:disabled) { transform:scale(.97); }
+.sc-cc .sc-icon-btn:disabled { cursor:not-allowed; opacity:.42; box-shadow:0 3px 10px rgba(0,0,0,.06); }
 .sc-cc button[aria-pressed=true] { border-color:transparent; background:var(--sc-assignmark-accent,#0a84ff); color:var(--sc-assignmark-accent-foreground,#fff); }
-.sc-cc .sc-icon-btn svg { width:21px; height:21px; flex:0 0 auto; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+.sc-cc .sc-icon-btn svg { width:20px; height:20px; flex:0 0 auto; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
 .sc-cc .sc-icon-btn svg .sc-icon-fill { fill:currentColor; stroke:none; opacity:.26; }
-.sc-cc .sc-label { max-width:50px; overflow-wrap:normal; color:inherit; white-space:normal; }
+.sc-cc .sc-label { max-width:46px; color:inherit; white-space:nowrap; }
 .sc-cc [hidden] { display:none !important; }
 
-.sc-cc-dark { color:#f5f5f7; --sc-surface:rgba(39,39,41,.86); --sc-surface-hover:rgba(52,52,55,.96); --sc-border:rgba(255,255,255,.13); --sc-shadow:0 6px 24px rgba(0,0,0,.34); }
-@media (prefers-color-scheme:dark) {
-  .sc-cc:not(.sc-cc-light) { color:#f5f5f7; --sc-surface:rgba(39,39,41,.86); --sc-surface-hover:rgba(52,52,55,.96); --sc-border:rgba(255,255,255,.13); --sc-shadow:0 6px 24px rgba(0,0,0,.34); }
-}
+.sc-cc-dark { color:#e8e8ea; --sc-surface:#2d2d30; --sc-surface-hover:#38383c; --sc-border:#48484d; --sc-shadow:0 6px 18px rgba(0,0,0,.3); }
+@media (prefers-color-scheme:dark) { .sc-cc:not(.sc-cc-light) { color:#e8e8ea; --sc-surface:#2d2d30; --sc-surface-hover:#38383c; --sc-border:#48484d; --sc-shadow:0 6px 18px rgba(0,0,0,.3); } }
 
-.sc-cal-error { position:fixed; left:50%; bottom:20px; z-index:2147483647; transform:translateX(-50%); max-width:min(90vw,520px); padding:10px 14px; border-radius:10px; color:#fff; background:#a4262c; box-shadow:0 6px 24px rgba(0,0,0,.25); font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif; }
+.sc-cal-error { position:fixed; left:50%; bottom:20px; z-index:2147483647; transform:translateX(-50%); max-width:min(90vw,520px); padding:10px 14px; border-radius:8px; color:#fff; background:#a4262c; box-shadow:0 4px 12px rgba(0,0,0,.25); font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif; }
 .sc-cal-notice { position:fixed; left:50%; bottom:20px; z-index:2147483647; transform:translateX(-50%); max-width:min(90vw,520px); padding:10px 14px; border-radius:999px; color:var(--sc-assignmark-accent-foreground,#fff); background:color-mix(in srgb,var(--sc-assignmark-accent,#0a84ff) 86%,#000); box-shadow:0 6px 24px rgba(0,0,0,.22); font:600 13px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif; text-align:center; pointer-events:none; }
-.sc-cc-move-overlay { position:absolute; inset:-4px; z-index:4; display:grid; gap:4px; align-content:center; padding:5px; border:2px dashed var(--sc-assignmark-accent,#0a84ff); border-radius:14px; background:color-mix(in srgb,var(--sc-surface) 92%,var(--sc-assignmark-accent,#0a84ff)); box-shadow:0 0 0 4px color-mix(in srgb,var(--sc-assignmark-accent,#0a84ff) 24%,transparent); }
+/* Move mode is a small opaque tool palette beside the rail—not a blurred cover. */
+.sc-cc-move-overlay { position:absolute; left:calc(100% + 8px); bottom:0; z-index:4; display:grid; gap:6px; width:108px; padding:7px; border:1px solid var(--sc-border); border-radius:10px; background:var(--sc-surface); box-shadow:0 8px 20px rgba(0,0,0,.14); }
 .sc-cc-move-overlay[hidden] { display:none !important; }
-.sc-cc-move-overlay button { min-height:28px; border:1px solid var(--sc-border); border-radius:8px; background:var(--sc-surface); color:inherit; font:600 10px/1 system-ui,-apple-system,"SF Pro Text","Segoe UI",sans-serif; cursor:pointer; }
+.sc-cc-move-overlay button { min-height:30px; padding:0 8px; border:1px solid var(--sc-border); border-radius:7px; background:var(--sc-surface-hover); color:inherit; font:600 10px/1 system-ui,-apple-system,"SF Pro Text","Segoe UI",sans-serif; cursor:pointer; }
 .sc-cc-move-handle { touch-action:none; cursor:grab !important; }
 .sc-cc-move-handle:active { cursor:grabbing !important; }
-.sc-cc-move-overlay button:focus-visible { outline:2px solid #fff; outline-offset:2px; box-shadow:0 0 0 4px #111 !important; }
-.sc-cc-moving .sc-icon-btn { opacity:.22; pointer-events:none; }
+.sc-cc-move-overlay button:focus-visible { outline:3px solid #ffbf47; outline-offset:2px; }
+.sc-cc-moving .sc-icon-btn { opacity:.4; }
 
-@media (max-width:390px) { .sc-cc { max-height:calc(100vh - 16px); } }
+@media (max-width:390px) { .sc-cc { max-height:calc(100vh - 16px); } .sc-cc-move-overlay { left:auto; right:calc(100% + 8px); } }
 @media (prefers-reduced-motion:reduce) { .sc-cc *, .sc-cal-left-checkbox { transition:none !important; animation:none !important; } }

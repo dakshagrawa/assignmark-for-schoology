@@ -369,7 +369,7 @@
     const hideDone = makeButton(doc, {
       id: "sc-cc-hide-done",
       icon: ICONS.eyeOpen,
-      label: "Hide done",
+      label: "Hide",
       role: "hide-done",
       pressed: false,
       primary: true
@@ -377,7 +377,7 @@
     const fadeDone = makeButton(doc, {
       id: "sc-cc-dim",
       icon: ICONS.fade,
-      label: "Fade done",
+      label: "Dim",
       role: "dim",
       pressed: true,
       primary: true
@@ -385,7 +385,7 @@
     const resetView = makeButton(doc, {
       id: "sc-cc-clear-view",
       icon: ICONS.reset,
-      label: "Reset view",
+      label: "Clear",
       role: "clear-view",
       primary: true
     });
@@ -500,7 +500,7 @@
         hideDone.title = "Showing only completed items. Click to show every item.";
         hideDone.setAttribute("aria-label", "Show all calendar items");
       } else {
-        setButtonContent(hideDone, pendingOnly ? ICONS.eyeClosed : ICONS.eyeOpen, "Hide done");
+        setButtonContent(hideDone, pendingOnly ? ICONS.eyeClosed : ICONS.eyeOpen, pendingOnly ? "Show" : "Hide");
         hideDone.title = pendingOnly ? "Completed items are hidden. Click to show them again." : "Hide completed items from this calendar view.";
         hideDone.setAttribute("aria-label", pendingOnly ? "Show completed calendar items" : "Hide completed calendar items");
       }
