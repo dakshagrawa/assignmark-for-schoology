@@ -43,7 +43,7 @@ test('primary controls use the opaque compact v2.0 tile treatment', () => {
 
 test('move controls use a separate opaque palette instead of an overlay cover', () => {
   const overlayRule = css.match(/\.sc-cc-move-overlay\s*\{([^}]*)\}/)?.[1] || '';
-  assert.match(overlayRule, /left\s*:\s*calc\(100% \+ 8px\)/);
+  assert.match(overlayRule, /right\s*:\s*calc\(100% \+ 8px\)/);
   assert.match(overlayRule, /background\s*:\s*var\(--sc-surface\)/);
   assert.match(overlayRule, /border-radius\s*:\s*10px/);
   assert.doesNotMatch(overlayRule, /dashed|blur\(/);

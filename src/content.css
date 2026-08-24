@@ -24,7 +24,7 @@
 .sc-cal-error { position:fixed; left:50%; bottom:20px; z-index:2147483647; transform:translateX(-50%); max-width:min(90vw,520px); padding:10px 14px; border-radius:8px; color:#fff; background:#a4262c; box-shadow:0 4px 12px rgba(0,0,0,.25); font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif; }
 .sc-cal-notice { position:fixed; left:50%; bottom:20px; z-index:2147483647; transform:translateX(-50%); max-width:min(90vw,520px); padding:10px 14px; border-radius:999px; color:var(--sc-assignmark-accent-foreground,#fff); background:color-mix(in srgb,var(--sc-assignmark-accent,#0a84ff) 86%,#000); box-shadow:0 6px 24px rgba(0,0,0,.22); font:600 13px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif; text-align:center; pointer-events:none; }
 /* Move mode is a small opaque tool palette beside the rail—not a blurred cover. */
-.sc-cc-move-overlay { position:absolute; left:calc(100% + 8px); bottom:0; z-index:4; display:grid; gap:6px; width:108px; padding:7px; border:1px solid var(--sc-border); border-radius:10px; background:var(--sc-surface); box-shadow:0 8px 20px rgba(0,0,0,.14); }
+.sc-cc-move-overlay { position:absolute; right:calc(100% + 8px); left:auto; bottom:0; z-index:4; display:grid; gap:6px; width:108px; padding:7px; border:1px solid var(--sc-border); border-radius:10px; background:var(--sc-surface); box-shadow:0 8px 20px rgba(0,0,0,.14); }
 .sc-cc-move-overlay[hidden] { display:none !important; }
 .sc-cc-move-overlay button { min-height:30px; padding:0 8px; border:1px solid var(--sc-border); border-radius:7px; background:var(--sc-surface-hover); color:inherit; font:600 10px/1 system-ui,-apple-system,"SF Pro Text","Segoe UI",sans-serif; cursor:pointer; }
 .sc-cc-move-handle { touch-action:none; cursor:grab !important; }
@@ -32,5 +32,5 @@
 .sc-cc-move-overlay button:focus-visible { outline:3px solid #ffbf47; outline-offset:2px; }
 .sc-cc-moving .sc-icon-btn { opacity:.4; }
 
-@media (max-width:390px) { .sc-cc { max-height:calc(100vh - 16px); } .sc-cc-move-overlay { left:auto; right:calc(100% + 8px); } }
+@media (max-width:390px) { .sc-cc { max-height:calc(100vh - 16px); } .sc-cc-move-overlay { left:calc(100% + 8px); right:auto; } }
 @media (prefers-reduced-motion:reduce) { .sc-cc *, .sc-cal-left-checkbox { transition:none !important; animation:none !important; } }
