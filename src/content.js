@@ -32,6 +32,20 @@ function reportError(error, context) {
   notice.dataset.timer = String(setTimeout(() => notice.remove(), 8000));
 }
 
+function showNotice(message) {
+  let notice = document.querySelector('.sc-cal-notice');
+  if (!notice) {
+    notice = document.createElement('div');
+    notice.className = 'sc-cal-notice';
+    notice.setAttribute('role', 'status');
+    document.body?.appendChild(notice);
+  }
+  if (!notice) return;
+  notice.textContent = message;
+  clearTimeout(Number(notice.dataset.timer));
+  notice.dataset.timer = String(setTimeout(() => notice.remove(), 6000));
+}
+
 function readLegacyData() {
   const parse = (key) => {
     try { return JSON.parse(window.localStorage.getItem(key) || '{}'); }
@@ -55,12 +69,14 @@ function applyState(id, checked) {
 }
 
 function render() {
+  const settings = store.getSettings();
+  document.documentElement.style.setProperty('--sc-assignmark-accent', settings.accentColor);
   for (const id of registry.currentScopeIds()) applyState(id, store.isChecked(id));
   registry.replace(registry.currentScopeIds().flatMap((id) =>
     registry.occurrences(id).map((node) => ({ id, node, checked: store.isChecked(id) }))
   ));
   const summary = summarizeRenderedItems(registry.items());
-  controlCenter?.render({ ...summary, ...store.getSettings() });
+  controlCenter?.render({ ...summary, ...settings });
   controlCenter?.showUndo(Boolean(undoSnapshot && Object.keys(undoSnapshot.states || {}).length));
 }
 
@@ -121,21 +137,17 @@ function ensureControlCenter() {
     },
     onDimChange: async () => {
       try { await store.updateSettings({ dim: !store.getSettings().dim }); render(); }
-      catch (error) { reportError(error, 'Saving Dim setting failed.'); }
+      catch (error) { reportError(error, 'Saving Fade completed setting failed.'); }
     },
     onClearView: async () => {
       const expectedStates = store.checkedSnapshot(registry.completedScopeIds());
       const count = Object.keys(expectedStates).length;
-      if (count === 0 || !window.confirm(`Clear ${count} completed item${count === 1 ? '' : 's'} in the current view?`)) return;
-      try { undoSnapshot = await store.clearCompleted(expectedStates); render(); }
-      catch (error) { reportError(error, 'Clearing current-view checkoffs failed.'); }
-    },
-    onClearAll: async () => {
-      const expectedStates = store.checkedSnapshot();
-      const count = Object.keys(expectedStates).length;
-      if (count === 0 || !window.confirm(`Clear all ${count} saved checkoff${count === 1 ? '' : 's'}?`)) return;
-      try { undoSnapshot = await store.clearAllStates(expectedStates); render(); }
-      catch (error) { reportError(error, 'Clearing all checkoffs failed.'); }
+      if (count === 0 || !window.confirm(`Reset ${count} completed item${count === 1 ? '' : 's'} in the current view?`)) return;
+      try {
+        undoSnapshot = await store.clearCompleted(expectedStates);
+        render();
+        showNotice(`Reset ${count} checkoff${count === 1 ? '' : 's'} in this calendar view. Undo is available.`);
+      } catch (error) { reportError(error, 'Resetting current-view checkoffs failed.'); }
     },
     onUndo: async () => {
       if (!undoSnapshot) return;

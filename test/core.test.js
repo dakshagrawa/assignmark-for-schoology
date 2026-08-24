@@ -110,6 +110,18 @@ test('filter setting defaults to all', async () => {
   assert.equal(store.getSettings().filter, 'all');
 });
 
+test('accent color defaults, normalizes, and rejects unsafe CSS values', async () => {
+  const store = new ExtensionStore(new MemoryStorageArea());
+  await store.initialize();
+  assert.equal(store.getSettings().accentColor, '#0078d4');
+
+  await store.updateSettings({ accentColor: '#FF2D55' });
+  assert.equal(store.getSettings().accentColor, '#ff2d55');
+
+  await store.updateSettings({ accentColor: 'url(https://example.com)' });
+  assert.equal(store.getSettings().accentColor, '#0078d4');
+});
+
 test('filter setting migrates legacy hide and rejects invalid values', async () => {
   const hiddenArea = new MemoryStorageArea({
     scCalendarData: { states: {}, settings: { hide: true, dim: true }, idMap: {} }

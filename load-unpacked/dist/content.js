@@ -3,7 +3,7 @@
   var DATA_KEY = "scCalendarData";
   var DATA_VERSION = 4;
   var FILTER_MODES = Object.freeze(["all", "pending", "done"]);
-  var DEFAULT_SETTINGS = Object.freeze({ hide: false, dim: true, filter: "all" });
+  var DEFAULT_SETTINGS = Object.freeze({ hide: false, dim: true, filter: "all", accentColor: "#0078d4" });
   var LEGACY_KEYS = Object.freeze({
     states: "sc_cal_checkbox_states_calendar_only",
     settings: "sc_cal_checkbox_settings_calendar_only",
@@ -305,29 +305,47 @@
       dimmed: Boolean(checked && settings.dim)
     };
   }
-  function makeButton(doc, id, iconSVG, label, pressed = null, dataFilter = null) {
-    const btn = doc.createElement("button");
-    btn.type = "button";
-    btn.id = id;
-    if (pressed !== null) btn.setAttribute("aria-pressed", String(Boolean(pressed)));
-    if (dataFilter) btn.setAttribute("data-filter", dataFilter);
-    btn.innerHTML = `${iconSVG}<span>${label}</span>`;
-    return btn;
+  function isDarkColor(value) {
+    const match = String(value || "").match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:\s*[,/]\s*([\d.]+))?\s*\)/i);
+    if (!match || Number(match[4] ?? 1) === 0) return false;
+    const channels = match.slice(1, 4).map((part) => Math.max(0, Math.min(255, Number(part))) / 255);
+    const linear = channels.map((channel) => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+    const luminance = 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+    return luminance < 0.35;
   }
-  function createControlCenter(doc, callbacks) {
-    const ICONS = {
-      filterAll: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h18v18H3zM5 5h14v14H5z"/></svg>',
-      filterPending: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/></svg>',
-      filterDone: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>',
-      clear: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6zM19 4h-3.5l-1-1h-5l-1 1H5v2h14z"/></svg>',
-      undo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>',
-      collapse: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>',
-      expand: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6 6-6-6 1.41-1.41z"/></svg>'
-    };
+  function pageUsesDarkSurface(doc) {
+    const view = doc.defaultView;
+    if (!view?.getComputedStyle) return false;
+    for (const element of [doc.body, doc.documentElement]) {
+      if (element && isDarkColor(view.getComputedStyle(element).backgroundColor)) return true;
+    }
+    return false;
+  }
+  var ICONS = Object.freeze({
+    eyeOpen: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6S2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.75"/></svg>',
+    eyeClosed: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 6.2A11.8 11.8 0 0 1 12 6c6 0 9.5 6 9.5 6a15.7 15.7 0 0 1-2.4 3.1M6.3 6.3C3.8 8 2.5 12 2.5 12s3.5 6 9.5 6c1.4 0 2.6-.3 3.7-.7M9.9 9.9A3 3 0 0 0 14.1 14"/></svg>',
+    fade: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path class="sc-icon-fill" d="M12 3a9 9 0 0 0 0 18V3Z"/></svg>',
+    reset: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v6h6M4.7 15a8 8 0 1 0 .2-6.3L4 10"/><path d="m9.5 12 1.7 1.7 3.6-4"/></svg>',
+    undo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 8 4 12l5 4v-3h5a5 5 0 0 1 5 5v1M4 12h10"/></svg>'
+  });
+  function makeButton(doc, { id, icon, label, role, pressed = null, primary = false }) {
+    const button = doc.createElement("button");
+    button.type = "button";
+    button.id = id;
+    button.className = primary ? "sc-icon-btn sc-cc-primary" : "sc-icon-btn";
+    button.setAttribute("data-role", role);
+    if (pressed !== null) button.setAttribute("aria-pressed", String(Boolean(pressed)));
+    button.innerHTML = `${icon}<span class="sc-label">${label}</span>`;
+    return button;
+  }
+  function setButtonContent(button, icon, label) {
+    button.innerHTML = `${icon}<span class="sc-label">${label}</span>`;
+  }
+  function createControlCenter(doc, callbacks = {}) {
     const container = doc.createElement("div");
     container.className = "sc-cc";
-    container.setAttribute("role", "region");
-    container.setAttribute("aria-label", "Assignmark controls");
+    container.setAttribute("role", "toolbar");
+    container.setAttribute("aria-label", "Assignmark calendar controls");
     const summary = doc.createElement("div");
     summary.className = "sc-cc-summary";
     summary.setAttribute("data-role", "progress");
@@ -335,73 +353,80 @@
     summary.setAttribute("aria-label", "0 of 0 current-view items completed");
     summary.title = "0 of 0 current-view items completed";
     summary.textContent = "0/0";
-    container.appendChild(summary);
-    const filters = doc.createElement("div");
-    filters.className = "sc-cc-filters";
-    filters.setAttribute("data-role", "filters");
-    filters.setAttribute("role", "group");
-    filters.setAttribute("aria-label", "Show items");
-    const btnAll = makeButton(doc, "sc-cc-all", ICONS.filterAll, "All", true, "all");
-    const btnPending = makeButton(doc, "sc-cc-pending", ICONS.filterPending, "Pending", false, "pending");
-    const btnDone = makeButton(doc, "sc-cc-done", ICONS.filterDone, "Done", false, "done");
-    filters.append(btnAll, btnPending, btnDone);
-    container.appendChild(filters);
-    const actions = doc.createElement("div");
-    actions.className = "sc-cc-actions";
-    const btnDim = makeButton(doc, "sc-cc-dim", ICONS.filterDone, "Dim", true);
-    btnDim.setAttribute("data-role", "dim");
-    const btnClearView = makeButton(doc, "sc-cc-clear-view", ICONS.clear, "Clear view");
-    btnClearView.setAttribute("data-role", "clear-view");
-    const btnClearAll = makeButton(doc, "sc-cc-clear-all", ICONS.clear, "Clear all");
-    btnClearAll.setAttribute("data-role", "clear-all");
-    const btnUndo = makeButton(doc, "sc-cc-undo", ICONS.undo, "Undo");
-    btnUndo.hidden = true;
-    btnUndo.setAttribute("data-role", "undo");
-    actions.append(btnDim, btnClearView, btnClearAll, btnUndo);
-    container.appendChild(actions);
-    const toggle = doc.createElement("button");
-    toggle.type = "button";
-    toggle.className = "sc-cc-toggle";
-    toggle.setAttribute("aria-expanded", "true");
-    toggle.setAttribute("aria-label", "Collapse controls");
-    toggle.innerHTML = ICONS.collapse;
-    container.appendChild(toggle);
-    let currentFilter = "all";
-    async function requestFilter(filter) {
-      if (currentFilter === filter) return;
-      await callbacks.onFilterChange?.(filter);
-    }
-    btnAll.addEventListener("click", () => void requestFilter("all"));
-    btnPending.addEventListener("click", () => void requestFilter("pending"));
-    btnDone.addEventListener("click", () => void requestFilter("done"));
-    btnDim.addEventListener("click", () => callbacks.onDimChange?.());
-    btnClearView.addEventListener("click", () => callbacks.onClearView?.());
-    btnClearAll.addEventListener("click", () => callbacks.onClearAll?.());
-    btnUndo.addEventListener("click", () => callbacks.onUndo?.());
-    let expanded = true;
-    toggle.addEventListener("click", () => {
-      expanded = !expanded;
-      container.classList.toggle("sc-cc-collapsed", !expanded);
-      toggle.setAttribute("aria-expanded", String(expanded));
-      toggle.innerHTML = expanded ? ICONS.collapse : ICONS.expand;
-      toggle.setAttribute("aria-label", expanded ? "Collapse controls" : "Expand controls");
+    const hideDone = makeButton(doc, {
+      id: "sc-cc-hide-done",
+      icon: ICONS.eyeOpen,
+      label: "Hide done",
+      role: "hide-done",
+      pressed: false,
+      primary: true
     });
-    function setFilterPressed(filter) {
-      currentFilter = normalizeFilter(filter);
-      btnAll.setAttribute("aria-pressed", currentFilter === "all" ? "true" : "false");
-      btnPending.setAttribute("aria-pressed", currentFilter === "pending" ? "true" : "false");
-      btnDone.setAttribute("aria-pressed", currentFilter === "done" ? "true" : "false");
-    }
+    const fadeDone = makeButton(doc, {
+      id: "sc-cc-dim",
+      icon: ICONS.fade,
+      label: "Fade done",
+      role: "dim",
+      pressed: true,
+      primary: true
+    });
+    const resetView = makeButton(doc, {
+      id: "sc-cc-clear-view",
+      icon: ICONS.reset,
+      label: "Reset view",
+      role: "clear-view",
+      primary: true
+    });
+    const undo = makeButton(doc, {
+      id: "sc-cc-undo",
+      icon: ICONS.undo,
+      label: "Undo reset",
+      role: "undo"
+    });
+    undo.hidden = true;
+    hideDone.title = "Hide completed items from this calendar view.";
+    fadeDone.title = "Make completed items lighter and strike them through. Checkmarks stay saved.";
+    resetView.title = "No completed items in this calendar view.";
+    resetView.disabled = true;
+    container.append(summary, hideDone, fadeDone, resetView, undo);
+    let currentFilter = "all";
+    hideDone.addEventListener("click", () => {
+      const nextFilter = currentFilter === "pending" ? "all" : currentFilter === "done" ? "all" : "pending";
+      void callbacks.onFilterChange?.(nextFilter);
+    });
+    fadeDone.addEventListener("click", () => callbacks.onDimChange?.());
+    resetView.addEventListener("click", () => callbacks.onClearView?.());
+    undo.addEventListener("click", () => callbacks.onUndo?.());
     function showUndo(show) {
-      btnUndo.hidden = !show;
+      undo.hidden = !show;
     }
-    function render2({ filter, dim, total, completed }) {
-      setFilterPressed(filter);
-      btnDim.setAttribute("aria-pressed", String(Boolean(dim)));
+    function render2({ filter, dim, total, completed, accentColor }) {
+      currentFilter = normalizeFilter(filter);
+      const pendingOnly = currentFilter === "pending";
+      const doneOnly = currentFilter === "done";
+      hideDone.setAttribute("aria-pressed", String(pendingOnly));
+      if (doneOnly) {
+        setButtonContent(hideDone, ICONS.eyeOpen, "Show all");
+        hideDone.title = "Showing only completed items. Click to show every item.";
+        hideDone.setAttribute("aria-label", "Show all calendar items");
+      } else {
+        setButtonContent(hideDone, pendingOnly ? ICONS.eyeClosed : ICONS.eyeOpen, "Hide done");
+        hideDone.title = pendingOnly ? "Completed items are hidden. Click to show them again." : "Hide completed items from this calendar view.";
+        hideDone.setAttribute("aria-label", pendingOnly ? "Show completed calendar items" : "Hide completed calendar items");
+      }
+      fadeDone.setAttribute("aria-pressed", String(Boolean(dim)));
+      fadeDone.title = dim ? "Completed items are faded and struck through. Click to show them normally." : "Make completed items lighter and strike them through. Checkmarks stay saved.";
+      fadeDone.setAttribute("aria-label", dim ? "Stop fading completed items" : "Fade completed items");
       const progressLabel = `${completed} of ${total} current-view items completed`;
       summary.textContent = `${completed}/${total}`;
       summary.setAttribute("aria-label", progressLabel);
       summary.title = progressLabel;
+      resetView.disabled = completed === 0;
+      resetView.title = completed === 0 ? "No completed items in this calendar view." : "Remove checkmarks only from completed items visible in this calendar view.";
+      resetView.setAttribute("aria-label", completed === 0 ? "Reset current view unavailable because no visible items are completed" : `Reset ${completed} completed item${completed === 1 ? "" : "s"} in this calendar view`);
+      if (typeof accentColor === "string") container.style.setProperty("--sc-assignmark-accent", accentColor);
+      const darkSurface = pageUsesDarkSurface(doc);
+      container.classList.toggle("sc-cc-dark", darkSurface);
+      container.classList.toggle("sc-cc-light", !darkSurface);
     }
     return {
       element: container,
@@ -441,6 +466,19 @@
     clearTimeout(Number(notice.dataset.timer));
     notice.dataset.timer = String(setTimeout(() => notice.remove(), 8e3));
   }
+  function showNotice(message) {
+    let notice = document.querySelector(".sc-cal-notice");
+    if (!notice) {
+      notice = document.createElement("div");
+      notice.className = "sc-cal-notice";
+      notice.setAttribute("role", "status");
+      document.body?.appendChild(notice);
+    }
+    if (!notice) return;
+    notice.textContent = message;
+    clearTimeout(Number(notice.dataset.timer));
+    notice.dataset.timer = String(setTimeout(() => notice.remove(), 6e3));
+  }
   function readLegacyData() {
     const parse = (key) => {
       try {
@@ -465,12 +503,14 @@
     }
   }
   function render() {
+    const settings = store.getSettings();
+    document.documentElement.style.setProperty("--sc-assignmark-accent", settings.accentColor);
     for (const id of registry.currentScopeIds()) applyState(id, store.isChecked(id));
     registry.replace(registry.currentScopeIds().flatMap(
       (id) => registry.occurrences(id).map((node) => ({ id, node, checked: store.isChecked(id) }))
     ));
     const summary = summarizeRenderedItems(registry.items());
-    controlCenter?.render({ ...summary, ...store.getSettings() });
+    controlCenter?.render({ ...summary, ...settings });
     controlCenter?.showUndo(Boolean(undoSnapshot && Object.keys(undoSnapshot.states || {}).length));
   }
   function addCheckbox(node, resolution) {
@@ -536,29 +576,19 @@
           await store.updateSettings({ dim: !store.getSettings().dim });
           render();
         } catch (error) {
-          reportError(error, "Saving Dim setting failed.");
+          reportError(error, "Saving Fade completed setting failed.");
         }
       },
       onClearView: async () => {
         const expectedStates = store.checkedSnapshot(registry.completedScopeIds());
         const count = Object.keys(expectedStates).length;
-        if (count === 0 || !window.confirm(`Clear ${count} completed item${count === 1 ? "" : "s"} in the current view?`)) return;
+        if (count === 0 || !window.confirm(`Reset ${count} completed item${count === 1 ? "" : "s"} in the current view?`)) return;
         try {
           undoSnapshot = await store.clearCompleted(expectedStates);
           render();
+          showNotice(`Reset ${count} checkoff${count === 1 ? "" : "s"} in this calendar view. Undo is available.`);
         } catch (error) {
-          reportError(error, "Clearing current-view checkoffs failed.");
-        }
-      },
-      onClearAll: async () => {
-        const expectedStates = store.checkedSnapshot();
-        const count = Object.keys(expectedStates).length;
-        if (count === 0 || !window.confirm(`Clear all ${count} saved checkoff${count === 1 ? "" : "s"}?`)) return;
-        try {
-          undoSnapshot = await store.clearAllStates(expectedStates);
-          render();
-        } catch (error) {
-          reportError(error, "Clearing all checkoffs failed.");
+          reportError(error, "Resetting current-view checkoffs failed.");
         }
       },
       onUndo: async () => {

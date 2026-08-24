@@ -3,7 +3,7 @@
   var DATA_KEY = "scCalendarData";
   var DATA_VERSION = 4;
   var FILTER_MODES = Object.freeze(["all", "pending", "done"]);
-  var DEFAULT_SETTINGS = Object.freeze({ hide: false, dim: true, filter: "all" });
+  var DEFAULT_SETTINGS = Object.freeze({ hide: false, dim: true, filter: "all", accentColor: "#0078d4" });
   var LEGACY_KEYS = Object.freeze({
     states: "sc_cal_checkbox_states_calendar_only",
     settings: "sc_cal_checkbox_settings_calendar_only",
@@ -63,7 +63,8 @@
   function normalizeSettings(value) {
     const settings = cleanRecord(value);
     const filter = FILTER_MODES.includes(settings.filter) ? settings.filter : settings.hide ? "pending" : "all";
-    return { ...DEFAULT_SETTINGS, ...settings, filter };
+    const accentColor = /^#[0-9a-f]{6}$/i.test(String(settings.accentColor || "")) ? String(settings.accentColor).toLowerCase() : DEFAULT_SETTINGS.accentColor;
+    return { ...DEFAULT_SETTINGS, ...settings, filter, accentColor };
   }
   function cleanData(value) {
     const data = cleanRecord(value);

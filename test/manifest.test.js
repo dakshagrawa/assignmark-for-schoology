@@ -5,9 +5,15 @@ import { readFile } from 'node:fs/promises';
 const manifest = JSON.parse(await readFile(new URL('../manifest.json', import.meta.url), 'utf8'));
 const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
 
-test('release metadata identifies version 2.1.1 consistently', () => {
-  assert.equal(manifest.version, '2.1.1');
+test('release metadata identifies version 2.2.0 consistently', () => {
+  assert.equal(manifest.version, '2.2.0');
   assert.equal(packageJson.version, manifest.version);
+});
+
+test('manifest exposes the local settings popup without adding permissions', () => {
+  assert.equal(manifest.action?.default_popup, 'src/popup.html');
+  assert.equal(manifest.action?.default_title, 'Assignmark settings');
+  assert.deepEqual(manifest.permissions, ['storage']);
 });
 
 test('manifest keeps minimal scope and uses the local storage coordinator', () => {

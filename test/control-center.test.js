@@ -7,7 +7,8 @@ import {
   isVisible,
   normalizeFilter,
   summarizeRenderedItems,
-  createControlCenter
+  createControlCenter,
+  isDarkColor
 } from '../src/control-center.js';
 
 test('control center exposes the supported filters', () => {
@@ -66,7 +67,7 @@ test('filter is the sole visibility authority while dim stays independent', () =
   );
 });
 
-test('control center DOM component renders progress and filters', () => {
+test('control center DOM component renders progress and focused calendar actions', () => {
   const dom = new JSDOM('<!doctype html><body></body>');
   const callbacks = {
     onFilterChange: () => {},
@@ -78,15 +79,36 @@ test('control center DOM component renders progress and filters', () => {
   const element = controlCenter.element;
 
   assert.ok(element.querySelector('[data-role="progress"]'));
-  assert.ok(element.querySelector('[data-role="filters"]'));
-  assert.ok(element.querySelector('[data-filter="all"]'));
-  assert.ok(element.querySelector('[data-filter="pending"]'));
-  assert.ok(element.querySelector('[data-filter="done"]'));
+  assert.ok(element.querySelector('[data-role="hide-done"]'));
   assert.ok(element.querySelector('[data-role="clear-view"]'));
-  assert.ok(element.querySelector('[data-role="clear-all"]'));
   assert.ok(element.querySelector('[data-role="dim"]'));
   // undo button exists but is hidden initially
   assert.ok(element.querySelector('[data-role="undo"]'));
+});
+
+test('calendar rail detects dark Schoology surfaces from their computed color', () => {
+  assert.equal(isDarkColor('rgb(48, 51, 57)'), true);
+  assert.equal(isDarkColor('rgba(39, 39, 41, 0.9)'), true);
+  assert.equal(isDarkColor('rgb(245, 245, 247)'), false);
+  assert.equal(isDarkColor('transparent'), false);
+});
+
+test('calendar rail restores the focused v2.0-style three-control format', () => {
+  const dom = new JSDOM('<!doctype html><body></body>');
+  const controlCenter = createControlCenter(dom.window.document, {});
+  const element = controlCenter.element;
+
+  assert.equal(element.getAttribute('role'), 'toolbar');
+  assert.equal(element.querySelectorAll('.sc-cc-primary').length, 3);
+  assert.ok(element.querySelector('[data-role="hide-done"]'));
+  assert.ok(element.querySelector('[data-role="dim"]'));
+  assert.ok(element.querySelector('[data-role="clear-view"]'));
+  assert.equal(element.querySelector('[data-role="hide-done"] span').textContent, 'Hide done');
+  assert.equal(element.querySelector('[data-role="dim"] span').textContent, 'Fade done');
+  assert.equal(element.querySelector('[data-role="clear-view"] span').textContent, 'Reset view');
+  assert.equal(element.querySelector('[data-role="clear-all"]'), null);
+  assert.equal(element.querySelector('[data-role="filters"]'), null);
+  assert.equal(element.querySelector('.sc-cc-toggle'), null);
 });
 
 test('control center DOM component renders compact progress with a full accessible description', () => {
@@ -101,7 +123,7 @@ test('control center DOM component renders compact progress with a full accessib
   assert.equal(progress.title, '0 of 23 current-view items completed');
 });
 
-test('control center DOM component updates filter pressed state on render', () => {
+test('control center DOM component maps pending filter to the Hide done control', () => {
   const dom = new JSDOM('<!doctype html><body></body>');
   const controlCenter = createControlCenter(dom.window.document, {
     onFilterChange: () => {},
@@ -112,11 +134,25 @@ test('control center DOM component updates filter pressed state on render', () =
 
   controlCenter.render({ filter: 'pending', dim: false, total: 3, completed: 1 });
 
-  const buttons = controlCenter.element.querySelectorAll('[data-filter]');
-  assert.equal(buttons[0].getAttribute('aria-pressed'), 'false');
-  assert.equal(buttons[1].getAttribute('aria-pressed'), 'true');
-  assert.equal(buttons[2].getAttribute('aria-pressed'), 'false');
+  const hideDone = controlCenter.element.querySelector('[data-role="hide-done"]');
+  assert.equal(hideDone.getAttribute('aria-pressed'), 'true');
+  assert.equal(hideDone.querySelector('span').textContent, 'Hide done');
   assert.equal(controlCenter.element.querySelector('[data-role="dim"]').getAttribute('aria-pressed'), 'false');
+});
+
+test('current-view reset explains its scope and disables itself when there is nothing to reset', () => {
+  const dom = new JSDOM('<!doctype html><body></body>');
+  const controlCenter = createControlCenter(dom.window.document, {});
+  const resetView = controlCenter.element.querySelector('[data-role="clear-view"]');
+
+  controlCenter.render({ filter: 'all', dim: true, total: 23, completed: 0 });
+  assert.equal(resetView.disabled, true);
+  assert.equal(resetView.textContent.trim(), 'Reset view');
+  assert.equal(resetView.title, 'No completed items in this calendar view.');
+
+  controlCenter.render({ filter: 'all', dim: true, total: 23, completed: 2 });
+  assert.equal(resetView.disabled, false);
+  assert.equal(resetView.title, 'Remove checkmarks only from completed items visible in this calendar view.');
 });
 
 test('control center DOM component shows Undo after clear action', () => {
@@ -153,5 +189,5 @@ test('control center DOM component prevents duplicate elements on repeated rende
   controlCenter.render({ filter: 'all', total: 1, completed: 0 });
 
   assert.equal(controlCenter.element.querySelectorAll('[data-role="progress"]').length, 1);
-  assert.equal(controlCenter.element.querySelectorAll('[data-filter]').length, 3);
+  assert.equal(controlCenter.element.querySelectorAll('.sc-cc-primary').length, 3);
 });

@@ -1,7 +1,7 @@
 export const DATA_KEY = 'scCalendarData';
 export const DATA_VERSION = 4;
 export const FILTER_MODES = Object.freeze(['all', 'pending', 'done']);
-export const DEFAULT_SETTINGS = Object.freeze({ hide: false, dim: true, filter: 'all' });
+export const DEFAULT_SETTINGS = Object.freeze({ hide: false, dim: true, filter: 'all', accentColor: '#0078d4' });
 
 const LEGACY_KEYS = Object.freeze({
   states: 'sc_cal_checkbox_states_calendar_only',
@@ -219,7 +219,10 @@ function normalizeSettings(value) {
     : settings.hide
       ? 'pending'
       : 'all';
-  return { ...DEFAULT_SETTINGS, ...settings, filter };
+  const accentColor = /^#[0-9a-f]{6}$/i.test(String(settings.accentColor || ''))
+    ? String(settings.accentColor).toLowerCase()
+    : DEFAULT_SETTINGS.accentColor;
+  return { ...DEFAULT_SETTINGS, ...settings, filter, accentColor };
 }
 
 function cleanData(value) {
