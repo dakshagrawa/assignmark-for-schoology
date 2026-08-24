@@ -27,7 +27,7 @@ Then load `load-unpacked/` from `chrome://extensions` in a clean profile and tes
 - the extension-toolbar popup's All / To do / Done filters, Fade completed explanation, locally bundled color picker, per-button visibility checkboxes, 80%–120% size slider, Move controls + Lock position, Reset settings to defaults, all-date Reset all checkoffs, and one-level Undo (including canceling each reset confirmation);
 - browser console has no extension errors.
 
-Upload `assignmark-for-schoology-2.2.1.zip`. `manifest.json` is at the ZIP root. The package contains one local MV3 service worker used only to serialize `chrome.storage.local` mutations across Schoology tabs; it contains no remote script, source map, secret, or test fixture.
+Upload `assignmark-for-schoology-2.2.2.zip`. `manifest.json` is at the ZIP root. The package contains one local MV3 service worker used only to serialize `chrome.storage.local` mutations across Schoology tabs; it contains no remote script, source map, secret, or test fixture.
 
 ## 3. Prepare listing assets separately
 
