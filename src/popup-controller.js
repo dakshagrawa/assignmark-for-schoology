@@ -42,10 +42,13 @@ export async function initSettingsPopup(doc, {
     const snapshot = undoSnapshot;
     const count = Object.keys(snapshot.states || {}).length;
     try {
-      await store.restoreStates(snapshot);
+      const restored = await store.restoreStates(snapshot);
+      const restoredCount = Object.keys(restored || {}).length;
       undoSnapshot = null;
       render();
-      popup.setStatus(`Restored ${count} checkoff${count === 1 ? '' : 's'}.`, 'success');
+      popup.setStatus(restoredCount > 0
+        ? `Restored ${restoredCount} checkoff${restoredCount === 1 ? '' : 's'}.`
+        : 'No checkoffs were restored because the saved data changed.', restoredCount > 0 ? 'success' : 'neutral');
     } catch (error) {
       popup.setStatus('Could not restore checkoffs. Try again.', 'error');
       console.error('[Assignmark] Undo reset failed.', error);

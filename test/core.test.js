@@ -115,7 +115,8 @@ test('accent foreground remains readable for light and dark custom colors', () =
   assert.equal(accentForeground('#ffffff'), '#111111');
   assert.equal(accentForeground('#000000'), '#ffffff');
   assert.equal(accentForeground('#ffea00'), '#111111');
-  assert.equal(accentForeground('#0078d4'), '#ffffff');
+  assert.equal(accentForeground('#0078d4'), '#111111');
+  assert.equal(accentForeground('#888888'), '#111111');
 });
 
 test('accent color defaults, normalizes, and rejects unsafe CSS values', async () => {

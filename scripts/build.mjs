@@ -35,6 +35,7 @@ await mkdir(path.join(release, 'src'), { recursive: true });
 await cp(path.join(root, 'src', 'content.css'), path.join(release, 'src', 'content.css'));
 await cp(path.join(root, 'src', 'popup.html'), path.join(release, 'src', 'popup.html'));
 await cp(path.join(root, 'THIRD_PARTY_NOTICES.md'), path.join(release, 'THIRD_PARTY_NOTICES.md'));
+await cp(path.join(root, 'LICENSE'), path.join(release, 'LICENSE'));
 await cp(path.join(root, 'icons'), path.join(release, 'icons'), { recursive: true });
 await cp(release, unpacked, { recursive: true });
 

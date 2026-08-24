@@ -16,4 +16,5 @@ test('release build bundles and copies the settings popup', () => {
   assert.match(build, /popup:\s*resolve\(root, 'src\/popup\.js'\)/);
   assert.match(build, /path\.join\(root, 'src', 'popup\.html'\)/);
   assert.match(build, /path\.join\(root, 'THIRD_PARTY_NOTICES\.md'\)/);
+  assert.match(build, /path\.join\(root, 'LICENSE'\)/);
 });

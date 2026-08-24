@@ -166,7 +166,7 @@ test('popup global reset confirms exact all-date scope, reports success, and off
     if (message.operation === 'restoreStates') {
       restored = message.snapshot;
       current = snapshot({ alpha: 100, beta: 200 });
-      return { ok: true, snapshot: current };
+      return { ok: true, snapshot: current, result: { alpha: 100, beta: 200 } };
     }
     throw new Error(`Unexpected operation: ${message.operation}`);
   };
@@ -188,4 +188,27 @@ test('popup global reset confirms exact all-date scope, reports success, and off
   await tick();
   assert.deepEqual(restored.states, { alpha: 100, beta: 200 });
   assert.equal(controller.popup.element.querySelector('[data-role="status"]').textContent, 'Restored 2 checkoffs.');
+});
+
+test('popup Undo reports only the checkoffs actually restored after a conflict', async () => {
+  const dom = new JSDOM('<!doctype html><body><main id="app"></main></body>');
+  let current = snapshot({ alpha: 100, beta: 200 });
+  const sendMessage = async (message) => {
+    if (message.operation === 'initialize') return { ok: true, snapshot: current };
+    if (message.operation === 'clearAllStates') {
+      current = snapshot({});
+      return { ok: true, snapshot: current, result: { states: message.expectedStates, versions: { alpha: 1, beta: 1 }, aliases: {} } };
+    }
+    if (message.operation === 'restoreStates') {
+      current = snapshot({ alpha: 900, beta: 200 });
+      return { ok: true, snapshot: current, result: { beta: 200 } };
+    }
+    throw new Error(`Unexpected operation: ${message.operation}`);
+  };
+  const controller = await initSettingsPopup(dom.window.document, { sendMessage, confirmAction: () => true });
+  controller.popup.element.querySelector('[data-role="reset-all"]').click();
+  await tick();
+  controller.popup.element.querySelector('[data-role="undo"]').click();
+  await tick();
+  assert.equal(controller.popup.element.querySelector('[data-role="status"]').textContent, 'Restored 1 checkoff.');
 });
