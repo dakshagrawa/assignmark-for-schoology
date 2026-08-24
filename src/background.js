@@ -26,6 +26,9 @@ export function createStorageMessageHandler(repository) {
       case 'updateSettings':
         result = await repository.updateSettings(message.patch);
         break;
+      case 'resetSettings':
+        result = await repository.resetSettings();
+        break;
       case 'resolve':
         result = await repository.resolve(message.candidates);
         break;

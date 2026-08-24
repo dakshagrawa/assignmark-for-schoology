@@ -6,10 +6,7 @@ const css = await readFile(new URL('../src/content.css', import.meta.url), 'utf8
 
 test('control center restores the compact v2.0 footprint without a calendar-blocking panel', () => {
   const controlRule = css.match(/\.sc-cc\s*\{([^}]*)\}/)?.[1] || '';
-  const width = Number(controlRule.match(/(?:^|;)\s*width\s*:\s*(\d+)px/)?.[1]);
-
-  assert.ok(Number.isFinite(width), 'control rail must have an explicit pixel width');
-  assert.ok(width <= 64, `control rail width ${width}px must not exceed 64px`);
+  assert.match(controlRule, /width\s*:\s*calc\(60px \* var\(--sc-control-scale,1\)\)/);
   assert.match(controlRule, /display\s*:\s*flex/);
   assert.match(controlRule, /flex-direction\s*:\s*column/);
   assert.match(controlRule, /gap\s*:\s*8px/);
@@ -39,8 +36,8 @@ test('primary controls use consistent touch targets and an adaptive glass surfac
   const width = Number(buttonRule.match(/width\s*:\s*(\d+)px/)?.[1]);
   const height = Number(buttonRule.match(/height\s*:\s*(\d+)px/)?.[1]);
 
-  assert.ok(width >= 52 && width <= 60, `primary control width is ${width}px`);
-  assert.ok(height >= 52 && height <= 60, `primary control height is ${height}px`);
+  assert.match(buttonRule, /width\s*:\s*calc\(60px \* var\(--sc-control-scale,1\)\)/);
+  assert.match(buttonRule, /height\s*:\s*calc\(60px \* var\(--sc-control-scale,1\)\)/);
   assert.match(buttonRule, /backdrop-filter\s*:[^;]*blur\(/);
   assert.match(buttonRule, /border-radius\s*:\s*12px/);
 });

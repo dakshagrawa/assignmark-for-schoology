@@ -162,6 +162,14 @@ function ensureControlCenter() {
       try { await store.updateSettings({ dim: !store.getSettings().dim }); render(); }
       catch (error) { reportError(error, 'Saving Fade completed setting failed.'); }
     },
+    onPositionChange: async (controlPosition) => {
+      try { await store.updateSettings({ controlPosition }); render(); }
+      catch (error) { reportError(error, 'Saving control position failed.'); }
+    },
+    onLockPosition: async () => {
+      try { await store.updateSettings({ moveMode: false }); render(); }
+      catch (error) { reportError(error, 'Locking control position failed.'); }
+    },
     onClearView: resetCurrentView,
     onUndo: async () => {
       if (!undoSnapshot) return;

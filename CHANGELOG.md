@@ -2,7 +2,13 @@
 
 All notable changes to Assignmark are documented here.
 
-## 2.2.0 — 2026-08-23
+## 2.2.1 — 2026-08-24
+
+### Changed
+
+- Increased the three integrated calendar primary controls to `60×60px` touch targets at the user's request while preserving the compact right-side rail.
+- Added a 80%–120% button-size slider (100% default), per-button visibility checkboxes, temporary pointer-capture move mode with a persisted lockable position, browser-theme-aware settings, and a settings-only reset-to-defaults action that preserves saved checkoffs.
+
 
 ### Added
 

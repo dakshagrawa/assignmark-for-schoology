@@ -211,3 +211,18 @@ test('control center DOM component prevents duplicate elements on repeated rende
   assert.equal(controlCenter.element.querySelectorAll('[data-role="progress"]').length, 1);
   assert.equal(controlCenter.element.querySelectorAll('.sc-cc-primary').length, 3);
 });
+
+test('control center applies visibility, percentage scale, and move overlay settings', () => {
+  const dom = new JSDOM('<!doctype html><body></body>');
+  const calls = [];
+  const controlCenter = createControlCenter(dom.window.document, {
+    onLockPosition: () => calls.push('lock'),
+    onPositionChange: (position) => calls.push(position)
+  });
+  controlCenter.render({ filter: 'all', total: 3, completed: 1, controlScale: 120, showHideDone: false, showFadeDone: true, showResetView: true, moveMode: true });
+  assert.equal(controlCenter.element.querySelector('[data-role="hide-done"]').hidden, true);
+  assert.equal(controlCenter.element.querySelector('.sc-cc-move-overlay').hidden, false);
+  assert.equal(controlCenter.element.style.getPropertyValue('--sc-control-scale'), '1.2');
+  controlCenter.element.querySelector('.sc-cc-lock').click();
+  assert.deepEqual(calls, ['lock']);
+});

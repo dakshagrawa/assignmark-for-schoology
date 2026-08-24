@@ -553,7 +553,7 @@ input.clr-color:focus {
   color: #1d1d1f;
   background: #f5f5f7;
   font-synthesis: none;
-  --accent:#0078d4;
+  --accent:#0a84ff;
 }
 * {
   box-sizing: border-box;
@@ -915,4 +915,102 @@ footer {
   * {
     transition: none !important;
   }
+}
+:root {
+  color-scheme: light dark;
+  --popup-bg:#f5f5f7;
+  --popup-card:rgba(255,255,255,.92);
+  --popup-text:#1d1d1f;
+  --popup-muted:#6e6e73;
+  --popup-border:rgba(0,0,0,.09);
+  --popup-subtle:#e9e9ed;
+}
+@media (prefers-color-scheme: dark) {
+  html,
+  body {
+    background: #1c1c1e;
+    color: #f5f5f7;
+  }
+  .settings-card {
+    background: rgba(44, 44, 46, .94);
+    border: 1px solid rgba(255, 255, 255, .1);
+  }
+  .segmented-control {
+    background: #2c2c2e;
+  }
+  .segmented-control button {
+    color: #c7c7cc;
+  }
+  .segmented-control button[aria-pressed=true] {
+    background: #636366;
+    color: #fff;
+  }
+  .popup-header p,
+  .section-heading p,
+  .switch-row small,
+  .color-setting small,
+  .reset-explanation {
+    color: #98989d;
+  }
+  .color-setting input {
+    background: #2c2c2e;
+    color: #f5f5f7;
+    border-color: rgba(255, 255, 255, .16);
+  }
+  .control-preferences {
+    border-top-color: rgba(255, 255, 255, .12);
+  }
+  .popup-status[data-tone=neutral] {
+    color: #98989d;
+  }
+  .popup-shell footer {
+    color: #98989d;
+  }
+}
+.control-preferences {
+  display: grid;
+  gap: 7px;
+  padding-top: 10px;
+  border-top: 1px solid var(--popup-border,#e5e5ea);
+  font-size: 12px;
+}
+.control-preferences > strong {
+  font-size: 13px;
+}
+.visibility-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+  cursor: pointer;
+}
+.visibility-option input {
+  accent-color: var(--accent,#0a84ff);
+}
+.size-setting {
+  display: grid;
+  gap: 5px;
+  margin-top: 3px;
+}
+.size-setting > span {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+}
+.size-setting output {
+  color: var(--popup-text,#1d1d1f);
+}
+.size-setting input {
+  width: 100%;
+  accent-color: var(--accent,#0a84ff);
+}
+.reset-settings-button {
+  margin: 0 16px;
+}
+.reset-explanation {
+  margin: -4px 16px 0;
+  color: #6e6e73;
+  font-size: 11px;
+  line-height: 1.35;
 }

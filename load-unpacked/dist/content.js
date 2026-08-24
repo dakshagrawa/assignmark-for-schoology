@@ -3,7 +3,8 @@
   var DATA_KEY = "scCalendarData";
   var DATA_VERSION = 4;
   var FILTER_MODES = Object.freeze(["all", "pending", "done"]);
-  var DEFAULT_SETTINGS = Object.freeze({ hide: false, dim: true, filter: "all", accentColor: "#0078d4" });
+  var CONTROL_SCALE_RANGE = Object.freeze({ min: 80, max: 120, step: 5 });
+  var DEFAULT_SETTINGS = Object.freeze({ hide: false, dim: true, filter: "all", accentColor: "#0a84ff", controlScale: 100, showHideDone: true, showFadeDone: true, showResetView: true, moveMode: false, controlPosition: Object.freeze({ right: 12, bottom: 70 }) });
   function accentForeground(value) {
     const match = /^#([0-9a-f]{6})$/i.exec(String(value || ""));
     if (!match) return "#ffffff";
@@ -200,6 +201,9 @@
     updateSettings(patch) {
       return this.request("updateSettings", { patch });
     }
+    resetSettings() {
+      return this.request("resetSettings");
+    }
     resolve(candidates) {
       return this.request("resolve", { candidates });
     }
@@ -392,12 +396,22 @@
       role: "undo"
     });
     undo.hidden = true;
+    const moveOverlay = doc.createElement("div");
+    moveOverlay.className = "sc-cc-move-overlay";
+    moveOverlay.hidden = true;
+    moveOverlay.innerHTML = '<button type="button" class="sc-cc-move-handle" aria-label="Drag Assignmark controls">Move controls</button><button type="button" class="sc-cc-lock">Lock position</button>';
+    const moveHandle = moveOverlay.querySelector(".sc-cc-move-handle");
+    const lockPosition = moveOverlay.querySelector(".sc-cc-lock");
     hideDone.title = "Hide completed items from this calendar view.";
     fadeDone.title = "Make completed items lighter and strike them through. Checkmarks stay saved.";
     resetView.title = "No completed items in this calendar view.";
     resetView.disabled = true;
-    container.append(summary, hideDone, fadeDone, resetView, undo);
+    container.append(summary, hideDone, fadeDone, resetView, undo, moveOverlay);
     let currentFilter = "all";
+    let showResetView = true;
+    let moveMode = false;
+    let position = { right: 12, bottom: 70 };
+    let dragStart = null;
     hideDone.addEventListener("click", () => {
       const nextFilter = currentFilter === "pending" ? "all" : currentFilter === "done" ? "all" : "pending";
       void callbacks.onFilterChange?.(nextFilter);
@@ -405,11 +419,56 @@
     fadeDone.addEventListener("click", () => callbacks.onDimChange?.());
     resetView.addEventListener("click", () => callbacks.onClearView?.());
     undo.addEventListener("click", () => callbacks.onUndo?.());
+    lockPosition.addEventListener("click", () => callbacks.onLockPosition?.());
+    const applyPosition = () => {
+      const rect = container.getBoundingClientRect();
+      position.right = Math.max(8, Math.min(position.right, Math.max(8, doc.defaultView.innerWidth - rect.width - 8)));
+      position.bottom = Math.max(8, Math.min(position.bottom, Math.max(8, doc.defaultView.innerHeight - rect.height - 8)));
+      container.style.setProperty("--sc-control-right", `${position.right}px`);
+      container.style.setProperty("--sc-control-bottom", `${position.bottom}px`);
+    };
+    moveHandle.addEventListener("pointerdown", (event) => {
+      if (!moveMode) return;
+      event.preventDefault();
+      moveHandle.setPointerCapture?.(event.pointerId);
+      dragStart = { id: event.pointerId, x: event.clientX, y: event.clientY, right: position.right, bottom: position.bottom };
+    });
+    moveHandle.addEventListener("pointermove", (event) => {
+      if (!dragStart || dragStart.id !== event.pointerId) return;
+      position.right = dragStart.right - (event.clientX - dragStart.x);
+      position.bottom = dragStart.bottom - (event.clientY - dragStart.y);
+      applyPosition();
+    });
+    const finishDrag = (event) => {
+      if (!dragStart || dragStart.id !== event.pointerId) return;
+      dragStart = null;
+      callbacks.onPositionChange?.({ ...position });
+    };
+    moveHandle.addEventListener("pointerup", finishDrag);
+    moveHandle.addEventListener("pointercancel", finishDrag);
+    moveHandle.addEventListener("keydown", (event) => {
+      if (!moveMode) return;
+      const delta = event.shiftKey ? 32 : 8;
+      if (event.key === "ArrowLeft") position.right += delta;
+      else if (event.key === "ArrowRight") position.right -= delta;
+      else if (event.key === "ArrowUp") position.bottom -= delta;
+      else if (event.key === "ArrowDown") position.bottom += delta;
+      else return;
+      event.preventDefault();
+      applyPosition();
+      callbacks.onPositionChange?.({ ...position });
+    });
     function showUndo(show) {
-      undo.hidden = !show;
+      undo.hidden = !show || !showResetView;
     }
-    function render2({ filter, dim, total, completed, accentColor, resetPending = false }) {
+    function render2({ filter, dim, total, completed, accentColor, controlScale = 100, showHideDone = true, showFadeDone = true, showResetView: nextShowResetView = true, moveMode: nextMoveMode = false, controlPosition = {}, resetPending = false }) {
       currentFilter = normalizeFilter(filter);
+      showResetView = nextShowResetView !== false;
+      moveMode = nextMoveMode === true;
+      position = {
+        right: Number.isFinite(Number(controlPosition.right)) ? Math.max(0, Number(controlPosition.right)) : position.right,
+        bottom: Number.isFinite(Number(controlPosition.bottom)) ? Math.max(0, Number(controlPosition.bottom)) : position.bottom
+      };
       const pendingOnly = currentFilter === "pending";
       const doneOnly = currentFilter === "done";
       hideDone.setAttribute("aria-pressed", String(pendingOnly));
@@ -433,6 +492,15 @@
       resetView.setAttribute("aria-busy", String(Boolean(resetPending)));
       resetView.title = completed === 0 ? "No completed items in this calendar view." : "Remove checkmarks only from completed items visible in this calendar view.";
       resetView.setAttribute("aria-label", completed === 0 ? "Reset current view unavailable because no visible items are completed" : `Reset ${completed} completed item${completed === 1 ? "" : "s"} in this calendar view`);
+      hideDone.hidden = showHideDone === false;
+      fadeDone.hidden = showFadeDone === false;
+      resetView.hidden = !showResetView;
+      undo.hidden = undo.hidden || !showResetView;
+      const normalizedScale = Math.min(120, Math.max(80, Number(controlScale) || 100));
+      container.style.setProperty("--sc-control-scale", String(normalizedScale / 100));
+      moveOverlay.hidden = !moveMode;
+      container.classList.toggle("sc-cc-moving", moveMode);
+      applyPosition();
       if (typeof accentColor === "string") {
         container.style.setProperty("--sc-assignmark-accent", accentColor);
         container.style.setProperty("--sc-assignmark-accent-foreground", accentForeground(accentColor));
@@ -647,6 +715,22 @@
           render();
         } catch (error) {
           reportError(error, "Saving Fade completed setting failed.");
+        }
+      },
+      onPositionChange: async (controlPosition) => {
+        try {
+          await store.updateSettings({ controlPosition });
+          render();
+        } catch (error) {
+          reportError(error, "Saving control position failed.");
+        }
+      },
+      onLockPosition: async () => {
+        try {
+          await store.updateSettings({ moveMode: false });
+          render();
+        } catch (error) {
+          reportError(error, "Locking control position failed.");
         }
       },
       onClearView: resetCurrentView,

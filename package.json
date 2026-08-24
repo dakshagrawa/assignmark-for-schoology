@@ -1,6 +1,6 @@
 {
   "name": "assignmark-for-schoology",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "private": true,
   "description": "Manifest V3 extension that adds persistent completion checkboxes to the FUHSD Schoology calendar.",
   "type": "module",
