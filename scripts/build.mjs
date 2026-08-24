@@ -12,14 +12,19 @@ await rm(unpacked, { recursive: true, force: true });
 await mkdir(release, { recursive: true });
 
 await build({
-  entryPoints: [path.join(root, 'src', 'content.js')],
-  outfile: path.join(release, 'dist', 'content.js'),
+  entryPoints: [
+    path.join(root, 'src', 'content.js'),
+    path.join(root, 'src', 'background.js')
+  ],
   bundle: true,
   format: 'iife',
   platform: 'browser',
   target: ['chrome120', 'edge120', 'firefox121'],
   minify: false,
-  legalComments: 'none'
+  legalComments: 'none',
+  entryNames: '[name]',
+  outbase: path.join(root, 'src'),
+  outdir: path.join(release, 'dist')
 });
 
 await cp(path.join(root, 'manifest.json'), path.join(release, 'manifest.json'));
