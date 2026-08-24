@@ -10,6 +10,7 @@ function cleanSnapshot(value) {
   return {
     version: Number(snapshot.version) || DATA_VERSION,
     states: cleanRecord(snapshot.states),
+    stateVersions: cleanRecord(snapshot.stateVersions),
     settings: { ...DEFAULT_SETTINGS, ...cleanRecord(snapshot.settings) },
     idMap: cleanRecord(snapshot.idMap)
   };
@@ -58,6 +59,14 @@ export class StorageClient {
     return Object.keys(this.data.states).filter((id) => Boolean(this.data.states[id]));
   }
 
+  checkedSnapshot(ids = this.checkedIds()) {
+    const states = {};
+    for (const id of new Set(Array.isArray(ids) ? ids : [])) {
+      if (this.data.states[id]) states[id] = this.data.states[id];
+    }
+    return states;
+  }
+
   setChecked(id, checked, timestamp = Date.now()) {
     return this.request('setChecked', { id, checked, timestamp });
   }
@@ -74,16 +83,12 @@ export class StorageClient {
     return this.request('resolveMany', { candidatesList });
   }
 
-  clearStates(ids) {
-    return this.request('clearStates', { ids });
+  clearCompleted(expectedStates) {
+    return this.request('clearCompleted', { expectedStates });
   }
 
-  clearCompleted(ids) {
-    return this.request('clearCompleted', { ids });
-  }
-
-  clearAllStates() {
-    return this.request('clearAllStates');
+  clearAllStates(expectedStates) {
+    return this.request('clearAllStates', { expectedStates });
   }
 
   restoreStates(snapshot) {

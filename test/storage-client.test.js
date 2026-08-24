@@ -85,9 +85,10 @@ test('coordinator imports page legacy data only when extension storage is empty'
   assert.equal(first.snapshot().idMap['legacy-alias'], 'legacy-id');
 });
 
-test('coordinator rejects unknown message operations', async () => {
+test('coordinator rejects unknown and removed storage operations', async () => {
   const { repository } = clientPair();
   const handle = createStorageMessageHandler(repository);
 
   await assert.rejects(() => handle({ type: 'assignmark:storage', operation: 'erase-everything' }), /Unknown storage operation/);
+  await assert.rejects(() => handle({ type: 'assignmark:storage', operation: 'clearStates' }), /Unknown storage operation/);
 });

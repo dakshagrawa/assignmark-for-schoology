@@ -39,11 +39,11 @@ export function appearanceForItem(checked, settings = {}) {
   };
 }
 
-function makeButton(doc, id, iconSVG, label, pressed = false, dataFilter = null) {
+function makeButton(doc, id, iconSVG, label, pressed = null, dataFilter = null) {
   const btn = doc.createElement('button');
   btn.type = 'button';
   btn.id = id;
-  btn.setAttribute('aria-pressed', String(pressed));
+  if (pressed !== null) btn.setAttribute('aria-pressed', String(Boolean(pressed)));
   if (dataFilter) btn.setAttribute('data-filter', dataFilter);
   btn.innerHTML = `${iconSVG}<span>${label}</span>`;
   return btn;
@@ -69,7 +69,7 @@ export function createControlCenter(doc, callbacks) {
   summary.className = 'sc-cc-summary';
   summary.setAttribute('data-role', 'progress');
   summary.setAttribute('aria-live', 'polite');
-  summary.textContent = '0 of 0 shown items completed';
+  summary.textContent = '0 of 0 current-view items completed';
   container.appendChild(summary);
 
   const filters = doc.createElement('div');
@@ -108,23 +108,14 @@ export function createControlCenter(doc, callbacks) {
 
   let currentFilter = 'all';
 
-  btnAll.addEventListener('click', () => {
-    if (currentFilter === 'all') return;
-    currentFilter = 'all';
-    callbacks.onFilterChange?.('all');
-  });
+  async function requestFilter(filter) {
+    if (currentFilter === filter) return;
+    await callbacks.onFilterChange?.(filter);
+  }
 
-  btnPending.addEventListener('click', () => {
-    if (currentFilter === 'pending') return;
-    currentFilter = 'pending';
-    callbacks.onFilterChange?.('pending');
-  });
-
-  btnDone.addEventListener('click', () => {
-    if (currentFilter === 'done') return;
-    currentFilter = 'done';
-    callbacks.onFilterChange?.('done');
-  });
+  btnAll.addEventListener('click', () => void requestFilter('all'));
+  btnPending.addEventListener('click', () => void requestFilter('pending'));
+  btnDone.addEventListener('click', () => void requestFilter('done'));
 
   btnDim.addEventListener('click', () => callbacks.onDimChange?.());
   btnClearView.addEventListener('click', () => callbacks.onClearView?.());
@@ -154,7 +145,7 @@ export function createControlCenter(doc, callbacks) {
   function render({ filter, dim, total, completed }) {
     setFilterPressed(filter);
     btnDim.setAttribute('aria-pressed', String(Boolean(dim)));
-    summary.textContent = `${completed} of ${total} shown items completed`;
+    summary.textContent = `${completed} of ${total} current-view items completed`;
   }
 
   return {

@@ -1,5 +1,5 @@
 export const DATA_KEY = 'scCalendarData';
-export const DATA_VERSION = 3;
+export const DATA_VERSION = 4;
 export const FILTER_MODES = Object.freeze(['all', 'pending', 'done']);
 export const DEFAULT_SETTINGS = Object.freeze({ hide: false, dim: true, filter: 'all' });
 
@@ -160,7 +160,19 @@ export function resolveCandidates(data, candidates) {
 
   let changed = false;
   const newStates = { ...data.states };
+  const newStateVersions = { ...cleanRecord(data.stateVersions) };
   const newIdMap = { ...data.idMap };
+
+  const stateVersionValues = [newStateVersions[target], ...[...sourceIds].map((id) => newStateVersions[id])]
+    .filter((value) => Number.isFinite(Number(value)))
+    .map(Number);
+  if (stateVersionValues.length) {
+    const maxVersion = Math.max(...stateVersionValues);
+    if (Number(newStateVersions[target]) !== maxVersion) {
+      newStateVersions[target] = maxVersion;
+      changed = true;
+    }
+  }
 
   if (checkedValues.length) {
     const maxTimestamp = Math.max(...checkedValues);
@@ -173,6 +185,10 @@ export function resolveCandidates(data, candidates) {
   for (const sourceId of sourceIds) {
     if (sourceId !== target && newStates[sourceId] !== undefined) {
       delete newStates[sourceId];
+      changed = true;
+    }
+    if (sourceId !== target && newStateVersions[sourceId] !== undefined) {
+      delete newStateVersions[sourceId];
       changed = true;
     }
   }
@@ -188,7 +204,7 @@ export function resolveCandidates(data, candidates) {
   return {
     resolution,
     changed,
-    next: changed ? { ...data, states: newStates, idMap: newIdMap } : data
+    next: changed ? { ...data, states: newStates, stateVersions: newStateVersions, idMap: newIdMap } : data
   };
 }
 
@@ -211,9 +227,19 @@ function cleanData(value) {
   return {
     version: DATA_VERSION,
     states: cleanRecord(data.states),
+    stateVersions: cleanRecord(data.stateVersions),
     settings: normalizeSettings(data.settings),
     idMap: cleanRecord(data.idMap)
   };
+}
+
+function nextStateVersion(data, timestamp = Date.now()) {
+  const current = Object.values(cleanRecord(data.stateVersions))
+    .map(Number)
+    .filter(Number.isFinite)
+    .reduce((maximum, value) => Math.max(maximum, value), 0);
+  const requested = Number(timestamp);
+  return Math.max(Date.now(), Number.isFinite(requested) ? requested : 0, current + 1);
 }
 
 function parseLegacy(storage, key) {
@@ -297,24 +323,27 @@ export class DataRepository {
 
   async resolveMany(candidatesList) {
     if (!Array.isArray(candidatesList) || candidatesList.length === 0) return [];
-    // First, pure pass to see if any resolution would change state/aliases
-    let workingData = this.snapshot();
-    let changed = false;
-    const resolutions = [];
-    for (const candidates of candidatesList) {
-      const result = resolveCandidates(workingData, candidates);
-      resolutions.push(result.resolution);
-      if (result.changed) {
-        changed = true;
-        workingData = result.next;
+    const operation = this.queue.then(async () => {
+      let workingData = this.snapshot();
+      let changed = false;
+      const resolutions = [];
+      for (const candidates of candidatesList) {
+        const result = resolveCandidates(workingData, candidates);
+        resolutions.push(result.resolution);
+        if (result.changed) {
+          changed = true;
+          workingData = result.next;
+        }
       }
-    }
-    if (!changed) return resolutions;
-    // Something changed: commit once via mutate
-    await this.mutate((next) => {
-      Object.assign(next, workingData);
+      if (changed) {
+        workingData.version = DATA_VERSION;
+        await this.storageArea.set({ [DATA_KEY]: workingData });
+        this.data = workingData;
+      }
+      return resolutions;
     });
-    return resolutions;
+    this.queue = operation.catch(() => undefined);
+    return operation;
   }
 
   setChecked(id, checked, timestamp = Date.now()) {
@@ -323,8 +352,16 @@ export class DataRepository {
       for (const mappedId of Object.values(next.idMap)) {
         if (mappedId === id) related.add(mappedId);
       }
-      if (checked) next.states[id] = timestamp;
-      else for (const relatedId of related) delete next.states[relatedId];
+      const revision = nextStateVersion(next, timestamp);
+      if (checked) {
+        next.states[id] = timestamp;
+        next.stateVersions[id] = revision;
+      } else {
+        for (const relatedId of related) {
+          delete next.states[relatedId];
+          next.stateVersions[relatedId] = revision;
+        }
+      }
     });
   }
 
@@ -334,60 +371,80 @@ export class DataRepository {
     });
   }
 
-  clearStates(ids = null) {
-    return this.mutate((next) => {
-      const removed = {};
-      const scope = ids === null
-        ? Object.keys(next.states)
-        : [...new Set(Array.isArray(ids) ? ids.filter((id) => typeof id === 'string' && id) : [])];
-      for (const id of scope) {
-        if (!next.states[id]) continue;
-        removed[id] = next.states[id];
-        delete next.states[id];
-      }
-      return removed;
-    });
+  clearCompleted(expectedStates) {
+    return this.clearConfirmedStates(expectedStates);
   }
 
-  clearCompleted(ids) {
-    if (!Array.isArray(ids) || ids.length === 0) return Promise.resolve({});
-    return this.mutate((next) => {
-      const removed = {};
-      const scope = [...new Set(ids.filter((id) => typeof id === 'string' && id))];
-      for (const id of scope) {
-        if (!next.states[id]) continue;
-        removed[id] = next.states[id];
-        delete next.states[id];
-      }
-      return removed;
-    });
+  clearAllStates(expectedStates) {
+    return this.clearConfirmedStates(expectedStates);
   }
 
-  clearAllStates() {
-    return this.mutate((next) => {
-      const removed = {};
-      for (const id of Object.keys(next.states)) {
-        if (!next.states[id]) continue;
-        removed[id] = next.states[id];
+  clearConfirmedStates(expectedStates) {
+    const expected = cleanRecord(expectedStates);
+    if (Object.keys(expected).length === 0) return Promise.resolve({ states: {}, versions: {} });
+    const operation = this.queue.then(async () => {
+      const next = this.snapshot();
+      const removed = { states: {}, versions: {}, aliases: {} };
+      const matches = Object.entries(expected).filter(([id, rawTimestamp]) =>
+        id && Number(next.states[id]) === Number(rawTimestamp)
+      );
+      if (matches.length === 0) return removed;
+      const revision = nextStateVersion(next);
+      for (const [id, rawTimestamp] of matches) {
+        removed.states[id] = Number(rawTimestamp);
+        removed.versions[id] = revision;
+        removed.aliases[id] = Object.entries(next.idMap)
+          .filter(([, target]) => target === id)
+          .map(([alias]) => alias);
         delete next.states[id];
+        next.stateVersions[id] = revision;
       }
+      next.version = DATA_VERSION;
+      await this.storageArea.set({ [DATA_KEY]: next });
+      this.data = next;
       return removed;
     });
+    this.queue = operation.catch(() => undefined);
+    return operation;
   }
 
   restoreStates(snapshot) {
-    return this.mutate((next) => {
+    const states = cleanRecord(snapshot?.states);
+    const versions = cleanRecord(snapshot?.versions);
+    const aliases = cleanRecord(snapshot?.aliases);
+    if (Object.keys(states).length === 0) return Promise.resolve({});
+    const operation = this.queue.then(async () => {
+      const next = this.snapshot();
       const restored = {};
-      for (const [id, rawTimestamp] of Object.entries(cleanRecord(snapshot))) {
+      const eligible = Object.entries(states).map(([id, rawTimestamp]) => {
         const timestamp = Number(rawTimestamp);
-        if (!id || !Number.isFinite(timestamp) || timestamp <= 0) continue;
-        const existing = Number(next.states[id]);
+        const clearedVersion = Number(versions[id]);
+        const migratedTargets = Array.isArray(aliases[id])
+          ? aliases[id].map((alias) => next.idMap[alias]).filter(Boolean)
+          : [];
+        const target = [id, ...migratedTargets].find(
+          (candidate) => Number(next.stateVersions[candidate]) === clearedVersion
+        );
+        return { id, target, timestamp, clearedVersion };
+      }).filter(({ id, target, timestamp, clearedVersion }) =>
+        id && target && Number.isFinite(timestamp) && timestamp > 0 && Number.isFinite(clearedVersion)
+      );
+      if (eligible.length === 0) return restored;
+      const revision = nextStateVersion(next);
+      for (const { target, timestamp } of eligible) {
+        const existing = Number(next.states[target]);
         const value = Number.isFinite(existing) ? Math.max(existing, timestamp) : timestamp;
-        next.states[id] = value;
-        restored[id] = value;
+        next.states[target] = value;
+        next.stateVersions[target] = revision;
+        restored[target] = value;
       }
+      next.version = DATA_VERSION;
+      await this.storageArea.set({ [DATA_KEY]: next });
+      this.data = next;
       return restored;
     });
+    this.queue = operation.catch(() => undefined);
+    return operation;
   }
 }
 

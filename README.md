@@ -8,13 +8,13 @@ Assignmark is a Manifest V3 browser extension for personal completion checkoffs 
 - Resolves canonical IDs from assignment/event links and `data-*` identifiers.
 - Falls back to a content + DOM-path fingerprint while maintaining semantic aliases and a persistent ID map across rerenders.
 - Keeps checked states through page reloads, calendar navigation, and DOM replacement.
-- Provides the original in-calendar **Hide**, **Dim**, and **Clear** controls.
+- Provides a current-view control center with **All**, **Pending**, **Done**, **Dim**, scoped **Clear view**, global **Clear all**, and one-level **Undo**.
 - Migrates the v1.2 userscript's existing `localStorage` states, settings, and ID map on first extension run.
 - Makes no network requests and contains no remote executable code.
 
 ## Why `chrome.storage.local`
 
-The userscript used Schoology-origin `localStorage`. The extension uses `chrome.storage.local` because it is extension-owned, survives Schoology site-data cleanup, and provides a portable WebExtension storage API. The content script loads one in-memory snapshot and serializes every mutation before writing it, preventing stale read-modify-write operations from overwriting newer state. `storage` is the extension's only named permission.
+The userscript used Schoology-origin `localStorage`. The extension uses `chrome.storage.local` because it is extension-owned and survives Schoology site-data cleanup. A minimal local MV3 service worker serializes mutations from every Schoology tab; content scripts communicate through a small storage client. `storage` is the extension's only named permission.
 
 Existing v1.2 data is imported once when no extension data exists. It is not deleted from Schoology `localStorage`, so rollback to the userscript remains possible.
 
@@ -35,8 +35,12 @@ legacy/Schoology Calendar Assignment Checker-1.2.user.js
                               Unmodified original userscript (SHA-256 preserved)
 manifest.json                 Chrome MV3 manifest
 src/content.js                Calendar injection, controls, observers, error UI
-src/content.css               Injected calendar and toolbar styles
+src/content.css               Injected calendar and control-center styles
 src/core.js                   ID resolution and serialized persistence
+src/background.js             Cross-tab storage mutation coordinator
+src/storage-client.js         Content-script storage protocol client
+src/calendar-adapter.js       Calendar discovery and current-view registry
+src/control-center.js         Filter/progress/action UI
 icons/                        16/32/48/128 px extension icons
 scripts/build.mjs             Bundle, validate manifest, and create store ZIP
 test/core.test.js             Node/jsdom unit and regression tests
@@ -44,7 +48,7 @@ test/fixture.html             Browser runtime fixture
 docs/STORE_SUBMISSION.md      Chrome submission and privacy checklist
 ```
 
-A background service worker is intentionally absent: all behavior is page-local and the content script can use extension storage directly.
+The background service worker performs local storage coordination only. It makes no network requests and adds no named permission.
 
 ## Development
 
@@ -75,13 +79,13 @@ npm run build
 4. Click **Load unpacked** and choose `/home/daksh/assignmark-for-schoology/load-unpacked/` (or the `load-unpacked/` folder in your checkout).
 5. Open the FUHSD Schoology calendar and confirm each item receives one checkbox.
 6. Check both canonical and linkless events, navigate calendar views, and reload to verify persistence.
-7. Test **Dim**, **Hide**, and **Clear**. Clear requires confirmation.
+7. Test **All/Pending/Done**, **Dim**, **Clear view**, **Clear all**, and **Undo**. Both clear actions require count-specific confirmation.
 
 The developer must use their own authorized Schoology session. No credentials belong in this repository or in reviewer notes unless the store explicitly provides a secure reviewer-credential field.
 
-## Toolbar vs. options page
+## Control center vs. options page
 
-The controls remain in the in-page toolbar. They are three calendar-specific actions whose effect is easiest to understand beside the calendar. A separate options page would add navigation and maintenance surface without improving the workflow. Do not build both unless future settings become complex or need configuration away from Schoology.
+The controls remain in an in-page calendar control center, where their current-view scope is visible. A separate options page would add navigation and maintenance surface without improving this workflow. Do not build both unless future settings become complex or need configuration away from Schoology.
 
 ## Browser portability
 

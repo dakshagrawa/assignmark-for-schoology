@@ -32,13 +32,10 @@ export function createStorageMessageHandler(repository) {
         result = await repository.resolveMany(message.candidatesList);
         break;
       case 'clearCompleted':
-        result = await repository.clearCompleted(message.ids);
+        result = await repository.clearCompleted(message.expectedStates);
         break;
       case 'clearAllStates':
-        result = await repository.clearAllStates();
-        break;
-      case 'clearStates':
-        result = await repository.clearStates(message.ids);
+        result = await repository.clearAllStates(message.expectedStates);
         break;
       case 'restoreStates':
         result = await repository.restoreStates(message.snapshot);

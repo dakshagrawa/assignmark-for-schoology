@@ -20,6 +20,27 @@ class MemoryStorageArea {
   async set(values) { this.setCount += 1; Object.assign(this.data, structuredClone(values)); }
 }
 
+class DelayedStorageArea extends MemoryStorageArea {
+  delayNextSet() {
+    let release;
+    let started;
+    this.releaseSet = new Promise((resolve) => { release = resolve; });
+    this.setStarted = new Promise((resolve) => { started = resolve; });
+    this.release = release;
+    this.started = started;
+  }
+
+  async set(values) {
+    if (this.releaseSet) {
+      const releaseSet = this.releaseSet;
+      this.releaseSet = null;
+      this.started();
+      await releaseSet;
+    }
+    return super.set(values);
+  }
+}
+
 function eventNode(html, url = 'https://fuhsd.schoology.com/calendar') {
   const dom = new JSDOM(html, { url });
   return { dom, node: dom.window.document.querySelector('.fc-event') };
@@ -193,17 +214,34 @@ test('repository resolveMany commits at most once per scan', async () => {
   const candidatesB = buildIdCandidates(nodeB, 'https://fuhsd.schoology.com');
 
   const writeCountBefore = area.setCount;
-
-  // First scan: adds aliases for both items
   await repository.resolveMany([candidatesA, candidatesB]);
   const writeCountAfterFirst = area.setCount;
-
-  // Second scan with same items: no writes needed
   await repository.resolveMany([candidatesA, candidatesB]);
   const writeCountAfterSecond = area.setCount;
 
   assert.ok(writeCountAfterFirst > writeCountBefore, 'first scan should write');
   assert.equal(writeCountAfterSecond, writeCountAfterFirst, 'second scan should not write');
+});
+
+test('resolveMany derives from the latest queued mutation', async () => {
+  const area = new DelayedStorageArea();
+  const repository = new DataRepository(area);
+  await repository.initialize();
+  area.delayNextSet();
+
+  const setPromise = repository.setChecked('keep', true, 100);
+  await area.setStarted;
+  const resolvePromise = repository.resolveMany([{
+    canonical: 'href::/assignment/1',
+    fallbackId: 'cal::fallback',
+    legacyIds: [],
+    aliases: ['semantic::x']
+  }]);
+  area.release();
+  await Promise.all([setPromise, resolvePromise]);
+
+  assert.equal(repository.isChecked('keep'), true);
+  assert.equal(repository.snapshot().idMap['semantic::x'], 'href::/assignment/1');
 });
 
 test('serialized mutations do not overwrite a checked state during concurrent resolution', async () => {
@@ -225,27 +263,28 @@ test('serialized mutations do not overwrite a checked state during concurrent re
   assert.equal(area.data.scCalendarData.states[resolution.id], 333);
 });
 
-test('scoped clear removes only requested checked states and returns an undo snapshot', async () => {
+test('scoped clear removes only confirmed states and returns a versioned undo snapshot', async () => {
   const store = new ExtensionStore(new MemoryStorageArea());
   await store.initialize();
   await store.setChecked('a', true, 100);
   await store.setChecked('b', true, 200);
   await store.setChecked('c', true, 300);
 
-  const removed = await store.clearStates(['a', 'b', 'a']);
+  const removed = await store.clearCompleted({ a: 100, b: 200 });
 
-  assert.deepEqual(removed, { a: 100, b: 200 });
+  assert.deepEqual(removed.states, { a: 100, b: 200 });
+  assert.deepEqual(Object.keys(removed.versions), ['a', 'b']);
   assert.equal(store.isChecked('a'), false);
   assert.equal(store.isChecked('b'), false);
   assert.equal(store.isChecked('c'), true);
 });
 
-test('restore cleared states preserves newer concurrent timestamps', async () => {
+test('undo restores unchanged clears but preserves newer positive mutations', async () => {
   const store = new ExtensionStore(new MemoryStorageArea());
   await store.initialize();
   await store.setChecked('a', true, 100);
   await store.setChecked('b', true, 200);
-  const removed = await store.clearStates(['a', 'b']);
+  const removed = await store.clearCompleted({ a: 100, b: 200 });
   await store.setChecked('a', true, 400);
 
   await store.restoreStates(removed);
@@ -253,53 +292,86 @@ test('restore cleared states preserves newer concurrent timestamps', async () =>
   assert.deepEqual(store.snapshot().states, { a: 400, b: 200 });
 });
 
-test('scoped clear with an empty scope leaves states unchanged', async () => {
+test('undo does not resurrect a state after a newer explicit uncheck', async () => {
   const store = new ExtensionStore(new MemoryStorageArea());
   await store.initialize();
   await store.setChecked('a', true, 100);
+  const removed = await store.clearCompleted({ a: 100 });
+  await store.setChecked('a', true, 400);
+  await store.setChecked('a', false, 500);
 
-  const removed = await store.clearStates([]);
+  await store.restoreStates(removed);
 
-  assert.deepEqual(removed, {});
-  assert.deepEqual(store.snapshot().states, { a: 100 });
-});
-
-test('clearCompleted removes only explicitly scoped checked IDs', async () => {
-  const store = new ExtensionStore(new MemoryStorageArea());
-  await store.initialize();
-  await store.setChecked('a', true, 100);
-  await store.setChecked('b', true, 200);
-  await store.setChecked('c', false, 0);
-
-  const removed = await store.clearCompleted(['a', 'b', 'a']);
-
-  assert.deepEqual(removed, { a: 100, b: 200 });
   assert.equal(store.isChecked('a'), false);
-  assert.equal(store.isChecked('b'), false);
-  assert.equal(store.isChecked('c'), false);
 });
 
-test('clearAllStates is separately named and removes all checked IDs', async () => {
+test('undo follows a benign fallback-to-canonical migration', async () => {
   const store = new ExtensionStore(new MemoryStorageArea());
   await store.initialize();
-  await store.setChecked('a', true, 100);
-  await store.setChecked('b', true, 200);
+  const fallbackNode = eventNode('<div class="fc-event"><span class="fc-event-time">10 AM</span><span class="fc-event-title">Lab</span></div>').node;
+  const fallbackCandidates = buildIdCandidates(fallbackNode, 'https://fuhsd.schoology.com');
+  const fallback = await store.resolve(fallbackCandidates);
+  await store.setChecked(fallback.id, true, 100);
+  const removed = await store.clearCompleted({ [fallback.id]: 100 });
 
-  const removed = await store.clearAllStates();
+  const canonicalNode = eventNode('<div class="fc-event"><a href="/assignment/99"><span class="fc-event-time">10 AM</span><span class="fc-event-title">Lab</span></a></div>').node;
+  const canonicalCandidates = buildIdCandidates(canonicalNode, 'https://fuhsd.schoology.com');
+  const canonical = await store.resolve(canonicalCandidates);
+  await store.restoreStates(removed);
 
-  assert.deepEqual(removed, { a: 100, b: 200 });
-  assert.deepEqual(store.snapshot().states, {});
+  assert.equal(store.isChecked(canonical.id), true);
 });
 
-test('clearCompleted with empty scope performs zero writes', async () => {
+test('undo tombstones follow fallback-to-canonical reconciliation', async () => {
+  const store = new ExtensionStore(new MemoryStorageArea());
+  await store.initialize();
+  const fallbackNode = eventNode('<div class="fc-event"><span class="fc-event-time">10 AM</span><span class="fc-event-title">Lab</span></div>').node;
+  const fallbackCandidates = buildIdCandidates(fallbackNode, 'https://fuhsd.schoology.com');
+  const fallback = await store.resolve(fallbackCandidates);
+  await store.setChecked(fallback.id, true, 100);
+  const removed = await store.clearCompleted({ [fallback.id]: 100 });
+
+  const canonicalNode = eventNode('<div class="fc-event"><a href="/assignment/99"><span class="fc-event-time">10 AM</span><span class="fc-event-title">Lab</span></a></div>').node;
+  const canonicalCandidates = buildIdCandidates(canonicalNode, 'https://fuhsd.schoology.com');
+  const canonical = await store.resolve(canonicalCandidates);
+  await store.setChecked(canonical.id, true, 400);
+  await store.setChecked(canonical.id, false, 500);
+  await store.restoreStates(removed);
+  await store.resolve(canonicalCandidates);
+
+  assert.equal(store.isChecked(canonical.id), false);
+});
+
+test('clearCompleted with empty confirmation performs zero writes', async () => {
   const area = new MemoryStorageArea();
   const repository = new DataRepository(area);
   await repository.initialize();
   await repository.setChecked('a', true, 100);
 
   const writeCountBefore = area.setCount;
-  await repository.clearCompleted([]);
-  const writeCountAfter = area.setCount;
+  const removed = await repository.clearCompleted({});
 
-  assert.equal(writeCountAfter, writeCountBefore);
+  assert.deepEqual(removed, { states: {}, versions: {} });
+  assert.equal(area.setCount, writeCountBefore);
+  assert.equal(repository.isChecked('a'), true);
+});
+
+test('clearAllStates removes only the exact states confirmed by the user', async () => {
+  const store = new ExtensionStore(new MemoryStorageArea());
+  await store.initialize();
+  await store.setChecked('a', true, 100);
+  const confirmed = { a: 100 };
+  await store.setChecked('b', true, 200);
+
+  const removed = await store.clearAllStates(confirmed);
+
+  assert.deepEqual(removed.states, { a: 100 });
+  assert.equal(store.isChecked('a'), false);
+  assert.equal(store.isChecked('b'), true);
+});
+
+test('nullable clearStates capability is removed', async () => {
+  const store = new ExtensionStore(new MemoryStorageArea());
+  await store.initialize();
+  assert.equal(store.clearStates, undefined);
 });

@@ -18,3 +18,7 @@ test('content entrypoint uses explicit clear operations and filter-driven appear
   assert.match(source, /appearanceForItem\(/);
   assert.doesNotMatch(source, /settings\.hide/);
 });
+
+test('content entrypoint removes the calendar-only control center when the calendar leaves the DOM', () => {
+  assert.match(source, /if \(!adapter\.isPresent\(\)\) \{\s*controlCenter\?\.destroy\(\);\s*controlCenter = null;\s*return;\s*\}/);
+});

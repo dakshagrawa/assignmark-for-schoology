@@ -1,4 +1,4 @@
-import { buildIdCandidates } from './core.js';
+import { DATA_KEY, buildIdCandidates } from './core.js';
 import { StorageClient } from './storage-client.js';
 import { CalendarAdapter, RenderedItemRegistry } from './calendar-adapter.js';
 import { appearanceForItem, createControlCenter, summarizeRenderedItems } from './control-center.js';
@@ -61,7 +61,7 @@ function render() {
   ));
   const summary = summarizeRenderedItems(registry.items());
   controlCenter?.render({ ...summary, ...store.getSettings() });
-  controlCenter?.showUndo(Boolean(undoSnapshot && Object.keys(undoSnapshot).length));
+  controlCenter?.showUndo(Boolean(undoSnapshot && Object.keys(undoSnapshot.states || {}).length));
 }
 
 function addCheckbox(node, resolution) {
@@ -104,7 +104,16 @@ function addCheckbox(node, resolution) {
 }
 
 function ensureControlCenter() {
-  if (!adapter.isPresent() || controlCenter) return;
+  if (!adapter.isPresent()) {
+    controlCenter?.destroy();
+    controlCenter = null;
+    return;
+  }
+  if (controlCenter && !controlCenter.element.isConnected) {
+    controlCenter.destroy();
+    controlCenter = null;
+  }
+  if (controlCenter) return;
   controlCenter = createControlCenter(document, {
     onFilterChange: async (filter) => {
       try { await store.updateSettings({ filter }); render(); }
@@ -115,15 +124,17 @@ function ensureControlCenter() {
       catch (error) { reportError(error, 'Saving Dim setting failed.'); }
     },
     onClearView: async () => {
-      const ids = registry.completedScopeIds();
-      if (ids.length === 0 || !window.confirm(`Clear ${ids.length} completed item${ids.length === 1 ? '' : 's'} in the current view?`)) return;
-      try { undoSnapshot = await store.clearCompleted(ids); render(); }
+      const expectedStates = store.checkedSnapshot(registry.completedScopeIds());
+      const count = Object.keys(expectedStates).length;
+      if (count === 0 || !window.confirm(`Clear ${count} completed item${count === 1 ? '' : 's'} in the current view?`)) return;
+      try { undoSnapshot = await store.clearCompleted(expectedStates); render(); }
       catch (error) { reportError(error, 'Clearing current-view checkoffs failed.'); }
     },
     onClearAll: async () => {
-      const count = store.checkedIds().length;
+      const expectedStates = store.checkedSnapshot();
+      const count = Object.keys(expectedStates).length;
       if (count === 0 || !window.confirm(`Clear all ${count} saved checkoff${count === 1 ? '' : 's'}?`)) return;
-      try { undoSnapshot = await store.clearAllStates(); render(); }
+      try { undoSnapshot = await store.clearAllStates(expectedStates); render(); }
       catch (error) { reportError(error, 'Clearing all checkoffs failed.'); }
     },
     onUndo: async () => {
@@ -174,7 +185,9 @@ async function init() {
     if (mutations.some((mutation) => mutation.addedNodes.length > 0)) scheduleScan();
   });
   observer.observe(document.body, { childList: true, subtree: true });
-  chrome.storage.onChanged.addListener(() => scheduleScan());
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === 'local' && changes[DATA_KEY]) scheduleScan();
+  });
   setInterval(scheduleScan, POLL_MS);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) scheduleScan(); });
   window.addEventListener('focus', scheduleScan);
