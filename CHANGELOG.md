@@ -2,6 +2,14 @@
 
 All notable changes to Assignmark are documented here.
 
+## 2.1.1 — 2026-08-23
+
+### Fixed
+
+- Replaced the wide bottom-right control panel, which could cover calendar cells, with a narrow previous-style vertical rail at the far right.
+- Reduced visible progress to a compact `completed/total` count while preserving the full current-view description for assistive technology and tooltips.
+- Retained All/Pending/Done filters, Dim, scoped/global clearing, Undo, collapse behavior, and keyboard-visible focus in the compact layout.
+
 ## 2.1.0 — 2026-08-23
 
 ### Added

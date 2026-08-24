@@ -89,6 +89,18 @@ test('control center DOM component renders progress and filters', () => {
   assert.ok(element.querySelector('[data-role="undo"]'));
 });
 
+test('control center DOM component renders compact progress with a full accessible description', () => {
+  const dom = new JSDOM('<!doctype html><body></body>');
+  const controlCenter = createControlCenter(dom.window.document, {});
+
+  controlCenter.render({ filter: 'all', dim: false, total: 23, completed: 0 });
+
+  const progress = controlCenter.element.querySelector('[data-role="progress"]');
+  assert.equal(progress.textContent, '0/23');
+  assert.equal(progress.getAttribute('aria-label'), '0 of 23 current-view items completed');
+  assert.equal(progress.title, '0 of 23 current-view items completed');
+});
+
 test('control center DOM component updates filter pressed state on render', () => {
   const dom = new JSDOM('<!doctype html><body></body>');
   const controlCenter = createControlCenter(dom.window.document, {

@@ -5,8 +5,8 @@ import { readFile } from 'node:fs/promises';
 const manifest = JSON.parse(await readFile(new URL('../manifest.json', import.meta.url), 'utf8'));
 const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
 
-test('release metadata identifies version 2.1.0 consistently', () => {
-  assert.equal(manifest.version, '2.1.0');
+test('release metadata identifies version 2.1.1 consistently', () => {
+  assert.equal(manifest.version, '2.1.1');
   assert.equal(packageJson.version, manifest.version);
 });
 
