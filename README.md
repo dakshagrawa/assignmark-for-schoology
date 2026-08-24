@@ -68,13 +68,13 @@ npm run build
 ```
 
 - **Ready-to-load Chrome folder:** `load-unpacked/` is committed to the repository so users can clone or download the source and load it immediately. Running `npm run build` refreshes this folder.
-- **Store ZIP:** `assignmark-for-schoology-2.2.1.zip`.
+- **Store ZIP:** `assignmark-for-schoology-2.2.2.zip`.
 
 `npm run build` creates:
 
 - `load-unpacked/` — ready to select with Chrome's **Load unpacked** button
 - `dist/release/` — identical packaged runtime directory used to create the store ZIP
-- `assignmark-for-schoology-2.2.1.zip` — uploadable Chrome Web Store package
+- `assignmark-for-schoology-2.2.2.zip` — uploadable Chrome Web Store package
 
 `npm run check` runs the complete test suite and production build.
 

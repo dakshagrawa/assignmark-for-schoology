@@ -146,13 +146,24 @@ export function createControlCenter(doc, callbacks = {}) {
   let position = { right: 12, bottom: 70 };
   let dragStart = null;
 
-  hideDone.addEventListener('click', () => {
+  const normalActionAllowed = () => !moveMode;
+  hideDone.addEventListener('click', (event) => {
+    if (!normalActionAllowed()) { event.preventDefault(); return; }
     const nextFilter = currentFilter === 'pending' ? 'all' : currentFilter === 'done' ? 'all' : 'pending';
     void callbacks.onFilterChange?.(nextFilter);
   });
-  fadeDone.addEventListener('click', () => callbacks.onDimChange?.());
-  resetView.addEventListener('click', () => callbacks.onClearView?.());
-  undo.addEventListener('click', () => callbacks.onUndo?.());
+  fadeDone.addEventListener('click', (event) => {
+    if (!normalActionAllowed()) { event.preventDefault(); return; }
+    callbacks.onDimChange?.();
+  });
+  resetView.addEventListener('click', (event) => {
+    if (!normalActionAllowed()) { event.preventDefault(); return; }
+    callbacks.onClearView?.();
+  });
+  undo.addEventListener('click', (event) => {
+    if (!normalActionAllowed()) { event.preventDefault(); return; }
+    callbacks.onUndo?.();
+  });
   lockPosition.addEventListener('click', () => callbacks.onLockPosition?.());
   const applyPosition = () => {
     const rect = container.getBoundingClientRect();
@@ -240,6 +251,13 @@ export function createControlCenter(doc, callbacks = {}) {
     resetView.setAttribute('aria-label', completed === 0
       ? 'Reset current view unavailable because no visible items are completed'
       : `Reset ${completed} completed item${completed === 1 ? '' : 's'} in this calendar view`);
+    hideDone.disabled = moveMode;
+    fadeDone.disabled = moveMode;
+    resetView.disabled = moveMode || resetView.disabled;
+    undo.disabled = moveMode;
+    for (const button of [hideDone, fadeDone, resetView, undo]) {
+      button.setAttribute('aria-disabled', String(moveMode));
+    }
     hideDone.hidden = showHideDone === false;
     fadeDone.hidden = showFadeDone === false;
     resetView.hidden = !showResetView;
