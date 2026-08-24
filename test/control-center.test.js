@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
 import {
   VALID_FILTERS,
+  appearanceForItem,
   isVisible,
   normalizeFilter,
   summarizeRenderedItems,
@@ -48,6 +49,21 @@ test('control center filters checked and pending items', () => {
   assert.equal(isVisible(true, 'done'), true);
   assert.equal(isVisible(false, 'done'), false);
   assert.equal(isVisible(true, 'invalid'), true);
+});
+
+test('filter is the sole visibility authority while dim stays independent', () => {
+  assert.deepEqual(
+    appearanceForItem(true, { filter: 'all', hide: true, dim: true }),
+    { visible: true, dimmed: true }
+  );
+  assert.deepEqual(
+    appearanceForItem(true, { filter: 'pending', hide: false, dim: false }),
+    { visible: false, dimmed: false }
+  );
+  assert.deepEqual(
+    appearanceForItem(false, { filter: 'done', hide: false, dim: true }),
+    { visible: false, dimmed: false }
+  );
 });
 
 test('control center DOM component renders progress and filters', () => {

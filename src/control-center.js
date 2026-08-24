@@ -32,6 +32,13 @@ export function isVisible(checked, filter) {
   }
 }
 
+export function appearanceForItem(checked, settings = {}) {
+  return {
+    visible: isVisible(checked, settings.filter),
+    dimmed: Boolean(checked && settings.dim)
+  };
+}
+
 function makeButton(doc, id, iconSVG, label, pressed = false, dataFilter = null) {
   const btn = doc.createElement('button');
   btn.type = 'button';
