@@ -111,6 +111,27 @@ test('filter setting defaults to all', async () => {
   assert.equal(store.getSettings().filter, 'all');
 });
 
+test('custom control settings default safely and clamp percentage/position values', async () => {
+  const store = new ExtensionStore(new MemoryStorageArea());
+  await store.initialize();
+  assert.equal(store.getSettings().controlScale, 100);
+  assert.equal(store.getSettings().showHideDone, true);
+  await store.updateSettings({ controlScale: 999, showFadeDone: false, controlPosition: { right: -4, bottom: 123 } });
+  assert.equal(store.getSettings().controlScale, 120);
+  assert.equal(store.getSettings().showFadeDone, false);
+  assert.deepEqual(store.getSettings().controlPosition, { right: 0, bottom: 123 });
+});
+
+test('resetSettings restores preferences without deleting saved checkoffs', async () => {
+  const store = new ExtensionStore(new MemoryStorageArea());
+  await store.initialize();
+  await store.setChecked('keep', true, 123);
+  await store.updateSettings({ accentColor: '#ff2d55', controlScale: 80, showHideDone: false, moveMode: true });
+  await store.resetSettings();
+  assert.equal(store.isChecked('keep'), true);
+  assert.deepEqual(store.getSettings(), DEFAULT_SETTINGS);
+});
+
 test('accent foreground remains readable for light and dark custom colors', () => {
   assert.equal(accentForeground('#ffffff'), '#000000');
   assert.equal(accentForeground('#000000'), '#ffffff');
@@ -123,13 +144,13 @@ test('accent foreground remains readable for light and dark custom colors', () =
 test('accent color defaults, normalizes, and rejects unsafe CSS values', async () => {
   const store = new ExtensionStore(new MemoryStorageArea());
   await store.initialize();
-  assert.equal(store.getSettings().accentColor, '#0078d4');
+  assert.equal(store.getSettings().accentColor, '#0a84ff');
 
   await store.updateSettings({ accentColor: '#FF2D55' });
   assert.equal(store.getSettings().accentColor, '#ff2d55');
 
   await store.updateSettings({ accentColor: 'url(https://example.com)' });
-  assert.equal(store.getSettings().accentColor, '#0078d4');
+  assert.equal(store.getSettings().accentColor, '#0a84ff');
 });
 
 test('filter setting migrates legacy hide and rejects invalid values', async () => {

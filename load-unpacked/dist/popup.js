@@ -887,7 +887,8 @@
   var DATA_KEY = "scCalendarData";
   var DATA_VERSION = 4;
   var FILTER_MODES = Object.freeze(["all", "pending", "done"]);
-  var DEFAULT_SETTINGS = Object.freeze({ hide: false, dim: true, filter: "all", accentColor: "#0078d4" });
+  var CONTROL_SCALE_RANGE = Object.freeze({ min: 80, max: 120, step: 5 });
+  var DEFAULT_SETTINGS = Object.freeze({ hide: false, dim: true, filter: "all", accentColor: "#0a84ff", controlScale: 100, showHideDone: true, showFadeDone: true, showResetView: true, moveMode: false, controlPosition: Object.freeze({ right: 12, bottom: 70 }) });
   function accentForeground(value) {
     const match = /^#([0-9a-f]{6})$/i.exec(String(value || ""));
     if (!match) return "#ffffff";
@@ -968,6 +969,9 @@
     updateSettings(patch) {
       return this.request("updateSettings", { patch });
     }
+    resetSettings() {
+      return this.request("resetSettings");
+    }
     resolve(candidates) {
       return this.request("resolve", { candidates });
     }
@@ -987,8 +991,8 @@
 
   // src/popup-ui.js
   var ACCENT_SWATCHES = Object.freeze([
-    "#0078d4",
     "#0a84ff",
+    "#0078d4",
     "#5856d6",
     "#af52de",
     "#ff2d55",
@@ -1050,6 +1054,15 @@
       <div class="swatches" role="group" aria-label="Accent color presets">
         ${ACCENT_SWATCHES.map((color) => `<button type="button" data-accent="${color}" aria-label="Use accent color ${color}" style="--swatch:${color}"></button>`).join("")}
       </div>
+
+      <div class="control-preferences" data-role="control-preferences">
+        <strong>Calendar controls</strong>
+        <label class="visibility-option"><input type="checkbox" data-control-visibility="hideDone"> <span>Show Hide done</span></label>
+        <label class="visibility-option"><input type="checkbox" data-control-visibility="fadeDone"> <span>Show Fade done</span></label>
+        <label class="visibility-option"><input type="checkbox" data-control-visibility="resetView"> <span>Show Reset view</span></label>
+        <label class="size-setting" for="control-scale"><span>Button size <output data-role="control-scale-value">100%</output></span><input id="control-scale" data-role="control-scale" type="range" min="80" max="120" step="5" value="100"></label>
+        <button type="button" class="secondary-button" data-role="move-controls">Move controls</button>
+      </div>
     </section>
 
     <section class="settings-card danger-card" data-section="data">
@@ -1064,6 +1077,9 @@
       <button type="button" class="secondary-button" data-role="undo" hidden>Undo reset</button>
     </section>
 
+    <button type="button" class="secondary-button reset-settings-button" data-role="reset-settings">Reset settings to defaults</button>
+    <p class="reset-explanation">Resets appearance, button visibility, size, and position. Saved checkoffs stay unchanged.</p>
+
     <p class="popup-status" data-role="status" role="status" aria-live="polite"></p>
     <footer>Stored locally. No analytics or external requests.</footer>
   `;
@@ -1074,6 +1090,10 @@
     const resetAll = shell.querySelector('[data-role="reset-all"]');
     const resetExplanation = shell.querySelector('[data-role="reset-all-explanation"]');
     const undo = shell.querySelector('[data-role="undo"]');
+    const resetSettings = shell.querySelector('[data-role="reset-settings"]');
+    const moveControls = shell.querySelector('[data-role="move-controls"]');
+    const controlScale = shell.querySelector('[data-role="control-scale"]');
+    const controlScaleValue = shell.querySelector('[data-role="control-scale-value"]');
     const status = shell.querySelector('[data-role="status"]');
     let currentDim = true;
     for (const button of filterButtons) {
@@ -1084,12 +1104,21 @@
     for (const swatch of shell.querySelectorAll("[data-accent]")) {
       swatch.addEventListener("click", () => void callbacks.onAccentChange?.(swatch.dataset.accent));
     }
+    for (const input of shell.querySelectorAll("[data-control-visibility]")) {
+      input.addEventListener("change", () => void callbacks.onControlVisibilityChange?.(input.dataset.controlVisibility, input.checked));
+    }
+    controlScale.addEventListener("input", () => {
+      controlScaleValue.textContent = `${controlScale.value}%`;
+    });
+    controlScale.addEventListener("change", () => callbacks.onControlScaleChange?.(Number(controlScale.value)));
+    moveControls.addEventListener("click", () => void callbacks.onMoveControls?.());
+    resetSettings.addEventListener("click", () => void callbacks.onResetSettings?.());
     resetAll.addEventListener("click", () => void callbacks.onResetAll?.());
     undo.addEventListener("click", () => void callbacks.onUndo?.());
     function render({ settings = {}, checkedCount = 0, canUndo = false, resetPending = false } = {}) {
       const filter = ["all", "pending", "done"].includes(settings.filter) ? settings.filter : "all";
       currentDim = Boolean(settings.dim);
-      const accentColor = /^#[0-9a-f]{6}$/i.test(String(settings.accentColor || "")) ? String(settings.accentColor).toLowerCase() : "#0078d4";
+      const accentColor = /^#[0-9a-f]{6}$/i.test(String(settings.accentColor || "")) ? String(settings.accentColor).toLowerCase() : "#0a84ff";
       for (const button of filterButtons) {
         button.setAttribute("aria-pressed", String(button.dataset.filter === filter));
       }
@@ -1098,6 +1127,16 @@
       colorPreview.style.background = accentColor;
       shell.style.setProperty("--accent", accentColor);
       shell.style.setProperty("--accent-foreground", accentForeground(accentColor));
+      const visibility = {
+        hideDone: settings.showHideDone !== false,
+        fadeDone: settings.showFadeDone !== false,
+        resetView: settings.showResetView !== false
+      };
+      for (const input of shell.querySelectorAll("[data-control-visibility]")) input.checked = visibility[input.dataset.controlVisibility];
+      controlScale.value = String(Math.min(120, Math.max(80, Number(settings.controlScale) || 100)));
+      controlScaleValue.textContent = `${controlScale.value}%`;
+      moveControls.textContent = settings.moveMode ? "Moving controls\u2026" : "Move controls";
+      moveControls.disabled = Boolean(settings.moveMode);
       const count = Math.max(0, Number(checkedCount) || 0);
       resetAll.disabled = resetPending || count === 0;
       resetAll.setAttribute("aria-busy", String(Boolean(resetPending)));
@@ -1241,10 +1280,36 @@
         console.error("[Assignmark] Updating the accent color failed.", error);
       }
     };
+    const updateControlSetting = async (key, value, message) => {
+      try {
+        await store.updateSettings({ [key]: value });
+        render();
+        popup.setStatus(message, "success");
+      } catch (error) {
+        render();
+        popup.setStatus("Could not update calendar controls. Try again.", "error");
+        console.error("[Assignmark] Updating calendar controls failed.", error);
+      }
+    };
+    const resetSettings = async () => {
+      if (!confirmAction("Reset Assignmark appearance, button visibility, size, and position to defaults? Saved checkoffs will not be deleted.")) return;
+      try {
+        await store.resetSettings();
+        render();
+        popup.setStatus("Settings reset to defaults. Saved checkoffs were kept.", "success");
+      } catch (error) {
+        popup.setStatus("Could not reset settings. Try again.", "error");
+        console.error("[Assignmark] Resetting settings failed.", error);
+      }
+    };
     popup = createSettingsPopup(doc, {
       onFilterChange: updateFilter,
       onDimChange: updateDim,
       onAccentChange: updateAccent,
+      onControlVisibilityChange: (name, visible) => updateControlSetting(`show${name[0].toUpperCase()}${name.slice(1)}`, visible, `${name} button ${visible ? "shown" : "hidden"}.`),
+      onControlScaleChange: (value) => updateControlSetting("controlScale", value, `Button size set to ${value}%.`),
+      onMoveControls: () => updateControlSetting("moveMode", true, "Move mode enabled on the calendar. Drag the highlighted rail and lock it there."),
+      onResetSettings: resetSettings,
       onResetAll: resetAll,
       onUndo: undo
     });
@@ -1278,7 +1343,7 @@
       themeMode: "auto",
       format: "hex",
       alpha: false,
-      swatches: ["#0078d4", "#0a84ff", "#5856d6", "#af52de", "#ff2d55", "#30b866"]
+      swatches: ["#0a84ff", "#0078d4", "#5856d6", "#af52de", "#ff2d55", "#30b866"]
     });
     document.querySelector("#app")?.setAttribute("aria-busy", "false");
   }

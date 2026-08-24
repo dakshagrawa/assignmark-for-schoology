@@ -3,7 +3,8 @@
   var DATA_KEY = "scCalendarData";
   var DATA_VERSION = 4;
   var FILTER_MODES = Object.freeze(["all", "pending", "done"]);
-  var DEFAULT_SETTINGS = Object.freeze({ hide: false, dim: true, filter: "all", accentColor: "#0078d4" });
+  var CONTROL_SCALE_RANGE = Object.freeze({ min: 80, max: 120, step: 5 });
+  var DEFAULT_SETTINGS = Object.freeze({ hide: false, dim: true, filter: "all", accentColor: "#0a84ff", controlScale: 100, showHideDone: true, showFadeDone: true, showResetView: true, moveMode: false, controlPosition: Object.freeze({ right: 12, bottom: 70 }) });
   var LEGACY_KEYS = Object.freeze({
     states: "sc_cal_checkbox_states_calendar_only",
     settings: "sc_cal_checkbox_settings_calendar_only",
@@ -64,7 +65,24 @@
     const settings = cleanRecord(value);
     const filter = FILTER_MODES.includes(settings.filter) ? settings.filter : settings.hide ? "pending" : "all";
     const accentColor = /^#[0-9a-f]{6}$/i.test(String(settings.accentColor || "")) ? String(settings.accentColor).toLowerCase() : DEFAULT_SETTINGS.accentColor;
-    return { ...DEFAULT_SETTINGS, ...settings, filter, accentColor };
+    const controlScale = Number.isFinite(Number(settings.controlScale)) ? Math.min(CONTROL_SCALE_RANGE.max, Math.max(CONTROL_SCALE_RANGE.min, Math.round(Number(settings.controlScale) / CONTROL_SCALE_RANGE.step) * CONTROL_SCALE_RANGE.step)) : DEFAULT_SETTINGS.controlScale;
+    const rawPosition = cleanRecord(settings.controlPosition);
+    const controlPosition = {
+      right: Number.isFinite(Number(rawPosition.right)) ? Math.max(0, Math.round(Number(rawPosition.right))) : DEFAULT_SETTINGS.controlPosition.right,
+      bottom: Number.isFinite(Number(rawPosition.bottom)) ? Math.max(0, Math.round(Number(rawPosition.bottom))) : DEFAULT_SETTINGS.controlPosition.bottom
+    };
+    return {
+      ...DEFAULT_SETTINGS,
+      ...settings,
+      filter,
+      accentColor,
+      controlScale,
+      showHideDone: settings.showHideDone !== false,
+      showFadeDone: settings.showFadeDone !== false,
+      showResetView: settings.showResetView !== false,
+      moveMode: settings.moveMode === true,
+      controlPosition
+    };
   }
   function cleanData(value) {
     const data = cleanRecord(value);
@@ -218,6 +236,11 @@
         next.settings = normalizeSettings({ ...next.settings, ...cleanRecord(patch) });
       });
     }
+    resetSettings() {
+      return this.mutate((next) => {
+        next.settings = normalizeSettings(DEFAULT_SETTINGS);
+      });
+    }
     clearCompleted(expectedStates) {
       return this.clearConfirmedStates(expectedStates);
     }
@@ -313,6 +336,9 @@
           break;
         case "updateSettings":
           result = await repository.updateSettings(message.patch);
+          break;
+        case "resetSettings":
+          result = await repository.resetSettings();
           break;
         case "resolve":
           result = await repository.resolve(message.candidates);

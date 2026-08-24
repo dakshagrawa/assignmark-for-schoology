@@ -1,8 +1,8 @@
 import { accentForeground } from './core.js';
 
 const ACCENT_SWATCHES = Object.freeze([
-  '#0078d4',
   '#0a84ff',
+  '#0078d4',
   '#5856d6',
   '#af52de',
   '#ff2d55',
@@ -65,6 +65,15 @@ export function createSettingsPopup(doc, callbacks = {}) {
       <div class="swatches" role="group" aria-label="Accent color presets">
         ${ACCENT_SWATCHES.map((color) => `<button type="button" data-accent="${color}" aria-label="Use accent color ${color}" style="--swatch:${color}"></button>`).join('')}
       </div>
+
+      <div class="control-preferences" data-role="control-preferences">
+        <strong>Calendar controls</strong>
+        <label class="visibility-option"><input type="checkbox" data-control-visibility="hideDone"> <span>Show Hide done</span></label>
+        <label class="visibility-option"><input type="checkbox" data-control-visibility="fadeDone"> <span>Show Fade done</span></label>
+        <label class="visibility-option"><input type="checkbox" data-control-visibility="resetView"> <span>Show Reset view</span></label>
+        <label class="size-setting" for="control-scale"><span>Button size <output data-role="control-scale-value">100%</output></span><input id="control-scale" data-role="control-scale" type="range" min="80" max="120" step="5" value="100"></label>
+        <button type="button" class="secondary-button" data-role="move-controls">Move controls</button>
+      </div>
     </section>
 
     <section class="settings-card danger-card" data-section="data">
@@ -79,6 +88,9 @@ export function createSettingsPopup(doc, callbacks = {}) {
       <button type="button" class="secondary-button" data-role="undo" hidden>Undo reset</button>
     </section>
 
+    <button type="button" class="secondary-button reset-settings-button" data-role="reset-settings">Reset settings to defaults</button>
+    <p class="reset-explanation">Resets appearance, button visibility, size, and position. Saved checkoffs stay unchanged.</p>
+
     <p class="popup-status" data-role="status" role="status" aria-live="polite"></p>
     <footer>Stored locally. No analytics or external requests.</footer>
   `;
@@ -90,6 +102,10 @@ export function createSettingsPopup(doc, callbacks = {}) {
   const resetAll = shell.querySelector('[data-role="reset-all"]');
   const resetExplanation = shell.querySelector('[data-role="reset-all-explanation"]');
   const undo = shell.querySelector('[data-role="undo"]');
+  const resetSettings = shell.querySelector('[data-role="reset-settings"]');
+  const moveControls = shell.querySelector('[data-role="move-controls"]');
+  const controlScale = shell.querySelector('[data-role="control-scale"]');
+  const controlScaleValue = shell.querySelector('[data-role="control-scale-value"]');
   const status = shell.querySelector('[data-role="status"]');
   let currentDim = true;
 
@@ -101,6 +117,15 @@ export function createSettingsPopup(doc, callbacks = {}) {
   for (const swatch of shell.querySelectorAll('[data-accent]')) {
     swatch.addEventListener('click', () => void callbacks.onAccentChange?.(swatch.dataset.accent));
   }
+  for (const input of shell.querySelectorAll('[data-control-visibility]')) {
+    input.addEventListener('change', () => void callbacks.onControlVisibilityChange?.(input.dataset.controlVisibility, input.checked));
+  }
+  controlScale.addEventListener('input', () => {
+    controlScaleValue.textContent = `${controlScale.value}%`;
+  });
+  controlScale.addEventListener('change', () => callbacks.onControlScaleChange?.(Number(controlScale.value)));
+  moveControls.addEventListener('click', () => void callbacks.onMoveControls?.());
+  resetSettings.addEventListener('click', () => void callbacks.onResetSettings?.());
   resetAll.addEventListener('click', () => void callbacks.onResetAll?.());
   undo.addEventListener('click', () => void callbacks.onUndo?.());
 
@@ -109,7 +134,7 @@ export function createSettingsPopup(doc, callbacks = {}) {
     currentDim = Boolean(settings.dim);
     const accentColor = /^#[0-9a-f]{6}$/i.test(String(settings.accentColor || ''))
       ? String(settings.accentColor).toLowerCase()
-      : '#0078d4';
+      : '#0a84ff';
 
     for (const button of filterButtons) {
       button.setAttribute('aria-pressed', String(button.dataset.filter === filter));
@@ -119,6 +144,16 @@ export function createSettingsPopup(doc, callbacks = {}) {
     colorPreview.style.background = accentColor;
     shell.style.setProperty('--accent', accentColor);
     shell.style.setProperty('--accent-foreground', accentForeground(accentColor));
+    const visibility = {
+      hideDone: settings.showHideDone !== false,
+      fadeDone: settings.showFadeDone !== false,
+      resetView: settings.showResetView !== false
+    };
+    for (const input of shell.querySelectorAll('[data-control-visibility]')) input.checked = visibility[input.dataset.controlVisibility];
+    controlScale.value = String(Math.min(120, Math.max(80, Number(settings.controlScale) || 100)));
+    controlScaleValue.textContent = `${controlScale.value}%`;
+    moveControls.textContent = settings.moveMode ? 'Moving controls…' : 'Move controls';
+    moveControls.disabled = Boolean(settings.moveMode);
 
     const count = Math.max(0, Number(checkedCount) || 0);
     resetAll.disabled = resetPending || count === 0;

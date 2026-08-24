@@ -101,10 +101,38 @@ export async function initSettingsPopup(doc, {
     }
   };
 
+  const updateControlSetting = async (key, value, message) => {
+    try {
+      await store.updateSettings({ [key]: value });
+      render();
+      popup.setStatus(message, 'success');
+    } catch (error) {
+      render();
+      popup.setStatus('Could not update calendar controls. Try again.', 'error');
+      console.error('[Assignmark] Updating calendar controls failed.', error);
+    }
+  };
+
+  const resetSettings = async () => {
+    if (!confirmAction('Reset Assignmark appearance, button visibility, size, and position to defaults? Saved checkoffs will not be deleted.')) return;
+    try {
+      await store.resetSettings();
+      render();
+      popup.setStatus('Settings reset to defaults. Saved checkoffs were kept.', 'success');
+    } catch (error) {
+      popup.setStatus('Could not reset settings. Try again.', 'error');
+      console.error('[Assignmark] Resetting settings failed.', error);
+    }
+  };
+
   popup = createSettingsPopup(doc, {
     onFilterChange: updateFilter,
     onDimChange: updateDim,
     onAccentChange: updateAccent,
+    onControlVisibilityChange: (name, visible) => updateControlSetting(`show${name[0].toUpperCase()}${name.slice(1)}`, visible, `${name} button ${visible ? 'shown' : 'hidden'}.`),
+    onControlScaleChange: (value) => updateControlSetting('controlScale', value, `Button size set to ${value}%.`),
+    onMoveControls: () => updateControlSetting('moveMode', true, 'Move mode enabled on the calendar. Drag the highlighted rail and lock it there.'),
+    onResetSettings: resetSettings,
     onResetAll: resetAll,
     onUndo: undo
   });

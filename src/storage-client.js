@@ -75,6 +75,10 @@ export class StorageClient {
     return this.request('updateSettings', { patch });
   }
 
+  resetSettings() {
+    return this.request('resetSettings');
+  }
+
   resolve(candidates) {
     return this.request('resolve', { candidates });
   }

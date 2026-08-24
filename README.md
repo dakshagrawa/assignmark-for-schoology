@@ -68,13 +68,13 @@ npm run build
 ```
 
 - **Ready-to-load Chrome folder:** `load-unpacked/` is committed to the repository so users can clone or download the source and load it immediately. Running `npm run build` refreshes this folder.
-- **Store ZIP:** `assignmark-for-schoology-2.2.0.zip`.
+- **Store ZIP:** `assignmark-for-schoology-2.2.1.zip`.
 
 `npm run build` creates:
 
 - `load-unpacked/` — ready to select with Chrome's **Load unpacked** button
 - `dist/release/` — identical packaged runtime directory used to create the store ZIP
-- `assignmark-for-schoology-2.2.0.zip` — uploadable Chrome Web Store package
+- `assignmark-for-schoology-2.2.1.zip` — uploadable Chrome Web Store package
 
 `npm run check` runs the complete test suite and production build.
 
@@ -93,7 +93,7 @@ The developer must use their own authorized Schoology session. No credentials be
 
 ## Calendar rail and settings popup
 
-Contextual actions remain beside the calendar: Hide done, Fade done, and Reset view. Global preferences and destructive all-date reset live in the extension-toolbar popup so the calendar stays uncluttered and the two reset scopes cannot be mistaken for each other.
+Contextual actions remain beside the calendar: Hide done, Fade done, and Reset view. The settings popup also lets users choose which of those buttons are visible, set their size from 80% to 120% (100% default), enable temporary Move controls mode, and reset these preferences to defaults without deleting saved checkoffs. Global preferences and destructive all-date reset live in the extension-toolbar popup so the calendar stays uncluttered and the two reset scopes cannot be mistaken for each other.
 
 ## Browser portability
 

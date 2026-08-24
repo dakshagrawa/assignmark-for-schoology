@@ -16,3 +16,10 @@ test('settings popup prevents horizontal overflow in a narrow toolbar viewport',
   assert.match(css, /\.color-setting\s*\{[^}]*grid-template-columns\s*:\s*minmax\(0,1fr\)\s+102px/);
   assert.match(css, /\.color-field-wrap \.clr-field\s*\{[^}]*width\s*:\s*100%/);
 });
+
+test('settings popup exposes theme adaptation and customizable control settings', () => {
+  assert.match(css, /prefers-color-scheme:dark/);
+  assert.match(css, /control-preferences/);
+  assert.match(css, /visibility-option/);
+  assert.match(css, /size-setting/);
+});

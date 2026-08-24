@@ -10,6 +10,10 @@ function setup() {
     onFilterChange: (filter) => calls.push(['filter', filter]),
     onDimChange: (enabled) => calls.push(['dim', enabled]),
     onAccentChange: (color) => calls.push(['accent', color]),
+    onControlVisibilityChange: (name, visible) => calls.push(['visibility', name, visible]),
+    onControlScaleChange: (value) => calls.push(['scale', value]),
+    onMoveControls: () => calls.push(['move']),
+    onResetSettings: () => calls.push(['reset-settings']),
     onResetAll: () => calls.push(['reset-all']),
     onUndo: () => calls.push(['undo'])
   });
@@ -67,5 +71,24 @@ test('settings popup forwards explicit filter, fade, and accent changes', () => 
     ['filter', 'done'],
     ['dim', false],
     ['accent', '#ff2d55']
+  ]);
+});
+
+test('settings popup forwards visibility, size, move, and reset-default actions', () => {
+  const { dom, popup, calls } = setup();
+  popup.render({ settings: { filter: 'all', dim: true, accentColor: '#0a84ff', controlScale: 100 }, checkedCount: 0 });
+  const hide = popup.element.querySelector('[data-control-visibility="hideDone"]');
+  hide.checked = false;
+  hide.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+  const scale = popup.element.querySelector('[data-role="control-scale"]');
+  scale.value = '120';
+  scale.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+  popup.element.querySelector('[data-role="move-controls"]').click();
+  popup.element.querySelector('[data-role="reset-settings"]').click();
+  assert.deepEqual(calls.slice(-4), [
+    ['visibility', 'hideDone', false],
+    ['scale', 120],
+    ['move'],
+    ['reset-settings']
   ]);
 });
