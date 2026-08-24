@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Assignmark: Schoology Checkoffs",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Adds persistent personal completion checkboxes and display controls to the FUHSD Schoology calendar.",
   "icons": {
     "16": "icons/icon16.png",

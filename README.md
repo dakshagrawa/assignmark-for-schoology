@@ -1,6 +1,6 @@
 # Assignmark: Schoology Checkoffs
 
-Assignmark is a Manifest V3 browser extension for personal completion checkoffs in Schoology. Version 2.0 adds persistent checkboxes to assignments and events in the FUHSD Schoology calendar at `https://fuhsd.schoology.com/*`; later versions will carefully extend the same canonical state across other Schoology assignment listings.
+Assignmark is a Manifest V3 browser extension for personal completion checkoffs in Schoology. Version 2.1 adds persistent calendar checkboxes plus a current-view control center with progress, All/Pending/Done filters, scoped and global clearing, one-level Undo, and cross-tab-safe local storage coordination at `https://fuhsd.schoology.com/*`; later versions will carefully extend the same canonical state across other Schoology assignment listings.
 
 ## Features
 
@@ -57,13 +57,13 @@ npm run build
 ```
 
 - **Load-unpacked directory:** choose `load-unpacked/` after running `npm run build`.
-- **Store ZIP:** `assignmark-for-schoology-2.0.0.zip`.
+- **Store ZIP:** `assignmark-for-schoology-2.1.0.zip`.
 
 `npm run build` creates:
 
 - `load-unpacked/` — ready to select with Chrome's **Load unpacked** button
 - `dist/release/` — identical packaged runtime directory used to create the store ZIP
-- `assignmark-for-schoology-2.0.0.zip` — uploadable Chrome Web Store package
+- `assignmark-for-schoology-2.1.0.zip` — uploadable Chrome Web Store package
 
 `npm run check` runs the complete test suite and production build.
 
