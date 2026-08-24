@@ -107,6 +107,44 @@ test('popup reflects storage changes made by the active Schoology tab', async ()
   assert.equal(controller.popup.element.querySelector('[data-role="reset-all-explanation"]').textContent, 'Removes 3 saved checkoffs from every calendar date.');
 });
 
+test('popup global reset ignores rapid reactivation and reports the actual removed count', async () => {
+  const dom = new JSDOM('<!doctype html><body><main id="app"></main></body>');
+  let current = snapshot({ alpha: 100, beta: 200 });
+  let clearCalls = 0;
+  let finishClear;
+  const sendMessage = async (message) => {
+    if (message.operation === 'initialize') return { ok: true, snapshot: current };
+    if (message.operation === 'clearAllStates') {
+      clearCalls += 1;
+      return new Promise((resolve) => { finishClear = () => {
+        current = snapshot({ beta: 300 });
+        resolve({
+          ok: true,
+          snapshot: current,
+          result: { states: { alpha: 100 }, versions: { alpha: 1 }, aliases: {} }
+        });
+      }; });
+    }
+    throw new Error(`Unexpected operation: ${message.operation}`);
+  };
+
+  const controller = await initSettingsPopup(dom.window.document, {
+    sendMessage,
+    confirmAction: () => true
+  });
+  const reset = controller.popup.element.querySelector('[data-role="reset-all"]');
+  reset.click();
+  reset.click();
+
+  assert.equal(clearCalls, 1);
+  assert.equal(reset.disabled, true);
+  finishClear();
+  await tick();
+
+  assert.equal(controller.popup.element.querySelector('[data-role="status"]').textContent, 'Reset 1 checkoff from every calendar date.');
+  assert.equal(controller.popup.element.querySelector('[data-role="undo"]').hidden, false);
+});
+
 test('popup global reset confirms exact all-date scope, reports success, and offers Undo', async () => {
   const dom = new JSDOM('<!doctype html><body><main id="app"></main></body>');
   let current = snapshot({ alpha: 100, beta: 200 });

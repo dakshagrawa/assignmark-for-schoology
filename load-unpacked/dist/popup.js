@@ -888,6 +888,13 @@
   var DATA_VERSION = 4;
   var FILTER_MODES = Object.freeze(["all", "pending", "done"]);
   var DEFAULT_SETTINGS = Object.freeze({ hide: false, dim: true, filter: "all", accentColor: "#0078d4" });
+  function accentForeground(value) {
+    const match = /^#([0-9a-f]{6})$/i.exec(String(value || ""));
+    if (!match) return "#ffffff";
+    const channels = [0, 2, 4].map((offset) => parseInt(match[1].slice(offset, offset + 2), 16) / 255).map((channel) => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+    const luminance = 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+    return luminance > 0.45 ? "#111111" : "#ffffff";
+  }
   var LEGACY_KEYS = Object.freeze({
     states: "sc_cal_checkbox_states_calendar_only",
     settings: "sc_cal_checkbox_settings_calendar_only",
@@ -1077,7 +1084,7 @@
     }
     resetAll.addEventListener("click", () => void callbacks.onResetAll?.());
     undo.addEventListener("click", () => void callbacks.onUndo?.());
-    function render({ settings = {}, checkedCount = 0, canUndo = false } = {}) {
+    function render({ settings = {}, checkedCount = 0, canUndo = false, resetPending = false } = {}) {
       const filter = ["all", "pending", "done"].includes(settings.filter) ? settings.filter : "all";
       currentDim = Boolean(settings.dim);
       const accentColor = /^#[0-9a-f]{6}$/i.test(String(settings.accentColor || "")) ? String(settings.accentColor).toLowerCase() : "#0078d4";
@@ -1088,17 +1095,56 @@
       accentInput.value = accentColor;
       colorPreview.style.background = accentColor;
       shell.style.setProperty("--accent", accentColor);
+      shell.style.setProperty("--accent-foreground", accentForeground(accentColor));
       const count = Math.max(0, Number(checkedCount) || 0);
-      resetAll.disabled = count === 0;
+      resetAll.disabled = resetPending || count === 0;
+      resetAll.setAttribute("aria-busy", String(Boolean(resetPending)));
       resetAll.setAttribute("aria-label", count === 0 ? "Reset all checkoffs unavailable because none are saved" : `Reset all ${count} saved checkoffs across every calendar date`);
       resetExplanation.textContent = count === 0 ? "No saved checkoffs to reset." : `Removes ${count} saved checkoff${count === 1 ? "" : "s"} from every calendar date.`;
       undo.hidden = !canUndo;
+      undo.disabled = Boolean(resetPending);
     }
     function setStatus(message = "", tone = "neutral") {
       status.textContent = message;
       status.dataset.tone = tone;
     }
     return { element: shell, render, setStatus };
+  }
+
+  // src/reset-action.js
+  function createResetOperation({
+    getExpectedStates,
+    confirmAction = () => true,
+    clear,
+    onPendingChange = () => {
+    },
+    onSuccess = () => {
+    },
+    onZeroResult = () => {
+    },
+    onError = () => {
+    }
+  } = {}) {
+    let pending = false;
+    return async function reset() {
+      if (pending) return;
+      const expectedStates = getExpectedStates?.() || {};
+      const expectedCount = Object.keys(expectedStates).length;
+      if (expectedCount === 0 || !confirmAction(expectedCount, expectedStates)) return;
+      pending = true;
+      onPendingChange(true);
+      try {
+        const snapshot = await clear(expectedStates);
+        const clearedCount = Object.keys(snapshot?.states || {}).length;
+        if (clearedCount > 0) onSuccess(snapshot, clearedCount);
+        else onZeroResult();
+      } catch (error) {
+        onError(error);
+      } finally {
+        pending = false;
+        onPendingChange(false);
+      }
+    };
   }
 
   // src/popup-controller.js
@@ -1109,31 +1155,34 @@
   } = {}) {
     const store = new StorageClient(sendMessage);
     let undoSnapshot = null;
+    let resetPending = false;
     let popup;
     const render = () => {
       popup.render({
         settings: store.getSettings(),
         checkedCount: Object.keys(store.checkedSnapshot()).length,
-        canUndo: Boolean(undoSnapshot && Object.keys(undoSnapshot.states || {}).length)
+        canUndo: Boolean(undoSnapshot && Object.keys(undoSnapshot.states || {}).length),
+        resetPending
       });
     };
-    const resetAll = async () => {
-      const expectedStates = store.checkedSnapshot();
-      const count = Object.keys(expectedStates).length;
-      if (count === 0) {
-        popup.setStatus("No saved checkoffs to reset.");
-        return;
-      }
-      if (!confirmAction(`Reset all ${count} saved checkoffs across every calendar date?`)) return;
-      try {
-        undoSnapshot = await store.clearAllStates(expectedStates);
+    const resetAll = createResetOperation({
+      getExpectedStates: () => store.checkedSnapshot(),
+      confirmAction: (count) => confirmAction(`Reset all ${count} saved checkoffs across every calendar date?`),
+      clear: (expectedStates) => store.clearAllStates(expectedStates),
+      onPendingChange: (pending) => {
+        resetPending = pending;
         render();
+      },
+      onSuccess: (snapshot, count) => {
+        undoSnapshot = snapshot;
         popup.setStatus(`Reset ${count} checkoff${count === 1 ? "" : "s"} from every calendar date.`, "success");
-      } catch (error) {
+      },
+      onZeroResult: () => popup.setStatus("No checkoffs were reset because the saved data changed.", "neutral"),
+      onError: (error) => {
         popup.setStatus("Could not reset saved checkoffs. Try again.", "error");
         console.error("[Assignmark] Reset all failed.", error);
       }
-    };
+    });
     const undo = async () => {
       if (!undoSnapshot) return;
       const snapshot = undoSnapshot;

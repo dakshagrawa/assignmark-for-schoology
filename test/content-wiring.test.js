@@ -33,7 +33,9 @@ test('user-facing calendar copy no longer calls fading Dim', () => {
 });
 
 test('content entrypoint applies the saved accent color to calendar checkboxes and controls', () => {
-  assert.match(source, /style\.setProperty\('--sc-assignmark-accent', settings\.accentColor\)/);
+  assert.match(source, /style\.setProperty\(\s*'--sc-assignmark-accent'/);
+  assert.match(source, /style\.setProperty\(\s*'--sc-assignmark-accent-foreground'/);
+  assert.match(source, /accentForeground\(settings\.accentColor\)/);
 });
 
 test('content entrypoint removes the calendar-only control center when the calendar leaves the DOM', () => {

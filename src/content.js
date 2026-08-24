@@ -1,7 +1,8 @@
-import { DATA_KEY, buildIdCandidates } from './core.js';
+import { DATA_KEY, accentForeground, buildIdCandidates } from './core.js';
 import { StorageClient } from './storage-client.js';
 import { CalendarAdapter, RenderedItemRegistry } from './calendar-adapter.js';
 import { appearanceForItem, createControlCenter, summarizeRenderedItems } from './control-center.js';
+import { createResetOperation } from './reset-action.js';
 
 const POLL_MS = 3000;
 const LEGACY_KEYS = {
@@ -14,6 +15,7 @@ const adapter = new CalendarAdapter(document);
 const registry = new RenderedItemRegistry();
 let controlCenter = null;
 let undoSnapshot = null;
+let viewResetPending = false;
 let scanQueued = false;
 let scanRunning = false;
 
@@ -46,6 +48,26 @@ function showNotice(message) {
   notice.dataset.timer = String(setTimeout(() => notice.remove(), 6000));
 }
 
+const resetCurrentView = createResetOperation({
+  getExpectedStates: () => store.checkedSnapshot(registry.completedScopeIds()),
+  confirmAction: (count) => window.confirm(`Reset ${count} completed item${count === 1 ? '' : 's'} in the current view?`),
+  clear: (expectedStates) => store.clearCompleted(expectedStates),
+  onPendingChange: (pending) => {
+    viewResetPending = pending;
+    render();
+  },
+  onSuccess: (snapshot, count) => {
+    undoSnapshot = snapshot;
+    render();
+    showNotice(`Reset ${count} checkoff${count === 1 ? '' : 's'} in this calendar view. Undo is available.`);
+  },
+  onZeroResult: () => {
+    render();
+    showNotice('No checkoffs were reset because the saved data changed.');
+  },
+  onError: (error) => reportError(error, 'Resetting current-view checkoffs failed.')
+});
+
 function readLegacyData() {
   const parse = (key) => {
     try { return JSON.parse(window.localStorage.getItem(key) || '{}'); }
@@ -71,12 +93,13 @@ function applyState(id, checked) {
 function render() {
   const settings = store.getSettings();
   document.documentElement.style.setProperty('--sc-assignmark-accent', settings.accentColor);
+  document.documentElement.style.setProperty('--sc-assignmark-accent-foreground', accentForeground(settings.accentColor));
   for (const id of registry.currentScopeIds()) applyState(id, store.isChecked(id));
   registry.replace(registry.currentScopeIds().flatMap((id) =>
     registry.occurrences(id).map((node) => ({ id, node, checked: store.isChecked(id) }))
   ));
   const summary = summarizeRenderedItems(registry.items());
-  controlCenter?.render({ ...summary, ...settings });
+  controlCenter?.render({ ...summary, ...settings, resetPending: viewResetPending });
   controlCenter?.showUndo(Boolean(undoSnapshot && Object.keys(undoSnapshot.states || {}).length));
 }
 
@@ -139,16 +162,7 @@ function ensureControlCenter() {
       try { await store.updateSettings({ dim: !store.getSettings().dim }); render(); }
       catch (error) { reportError(error, 'Saving Fade completed setting failed.'); }
     },
-    onClearView: async () => {
-      const expectedStates = store.checkedSnapshot(registry.completedScopeIds());
-      const count = Object.keys(expectedStates).length;
-      if (count === 0 || !window.confirm(`Reset ${count} completed item${count === 1 ? '' : 's'} in the current view?`)) return;
-      try {
-        undoSnapshot = await store.clearCompleted(expectedStates);
-        render();
-        showNotice(`Reset ${count} checkoff${count === 1 ? '' : 's'} in this calendar view. Undo is available.`);
-      } catch (error) { reportError(error, 'Resetting current-view checkoffs failed.'); }
-    },
+    onClearView: resetCurrentView,
     onUndo: async () => {
       if (!undoSnapshot) return;
       const snapshot = undoSnapshot;

@@ -1,5 +1,6 @@
 import { StorageClient } from './storage-client.js';
 import { createSettingsPopup } from './popup-ui.js';
+import { createResetOperation } from './reset-action.js';
 
 export async function initSettingsPopup(doc, {
   sendMessage,
@@ -8,33 +9,33 @@ export async function initSettingsPopup(doc, {
 } = {}) {
   const store = new StorageClient(sendMessage);
   let undoSnapshot = null;
+  let resetPending = false;
   let popup;
 
   const render = () => {
     popup.render({
       settings: store.getSettings(),
       checkedCount: Object.keys(store.checkedSnapshot()).length,
-      canUndo: Boolean(undoSnapshot && Object.keys(undoSnapshot.states || {}).length)
+      canUndo: Boolean(undoSnapshot && Object.keys(undoSnapshot.states || {}).length),
+      resetPending
     });
   };
 
-  const resetAll = async () => {
-    const expectedStates = store.checkedSnapshot();
-    const count = Object.keys(expectedStates).length;
-    if (count === 0) {
-      popup.setStatus('No saved checkoffs to reset.');
-      return;
-    }
-    if (!confirmAction(`Reset all ${count} saved checkoffs across every calendar date?`)) return;
-    try {
-      undoSnapshot = await store.clearAllStates(expectedStates);
-      render();
+  const resetAll = createResetOperation({
+    getExpectedStates: () => store.checkedSnapshot(),
+    confirmAction: (count) => confirmAction(`Reset all ${count} saved checkoffs across every calendar date?`),
+    clear: (expectedStates) => store.clearAllStates(expectedStates),
+    onPendingChange: (pending) => { resetPending = pending; render(); },
+    onSuccess: (snapshot, count) => {
+      undoSnapshot = snapshot;
       popup.setStatus(`Reset ${count} checkoff${count === 1 ? '' : 's'} from every calendar date.`, 'success');
-    } catch (error) {
+    },
+    onZeroResult: () => popup.setStatus('No checkoffs were reset because the saved data changed.', 'neutral'),
+    onError: (error) => {
       popup.setStatus('Could not reset saved checkoffs. Try again.', 'error');
       console.error('[Assignmark] Reset all failed.', error);
     }
-  };
+  });
 
   const undo = async () => {
     if (!undoSnapshot) return;

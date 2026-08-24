@@ -140,6 +140,26 @@ test('control center DOM component maps pending filter to the Hide done control'
   assert.equal(controlCenter.element.querySelector('[data-role="dim"]').getAttribute('aria-pressed'), 'false');
 });
 
+test('calendar rail derives readable foreground tokens for extreme custom accents', () => {
+  const dom = new JSDOM('<!doctype html><body></body>');
+  const controlCenter = createControlCenter(dom.window.document, {});
+
+  controlCenter.render({ filter: 'all', dim: true, total: 1, completed: 1, accentColor: '#ffffff' });
+
+  assert.equal(controlCenter.element.style.getPropertyValue('--sc-assignmark-accent-foreground'), '#111111');
+});
+
+test('current-view reset stays disabled while a reset is pending', () => {
+  const dom = new JSDOM('<!doctype html><body></body>');
+  const controlCenter = createControlCenter(dom.window.document, {});
+  const resetView = controlCenter.element.querySelector('[data-role="clear-view"]');
+
+  controlCenter.render({ filter: 'all', dim: true, total: 3, completed: 2, resetPending: true });
+
+  assert.equal(resetView.disabled, true);
+  assert.equal(resetView.getAttribute('aria-busy'), 'true');
+});
+
 test('current-view reset explains its scope and disables itself when there is nothing to reset', () => {
   const dom = new JSDOM('<!doctype html><body></body>');
   const controlCenter = createControlCenter(dom.window.document, {});

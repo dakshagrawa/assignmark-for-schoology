@@ -1,4 +1,4 @@
-import { FILTER_MODES } from './core.js';
+import { FILTER_MODES, accentForeground } from './core.js';
 
 export const VALID_FILTERS = FILTER_MODES;
 
@@ -148,7 +148,7 @@ export function createControlCenter(doc, callbacks = {}) {
     undo.hidden = !show;
   }
 
-  function render({ filter, dim, total, completed, accentColor }) {
+  function render({ filter, dim, total, completed, accentColor, resetPending = false }) {
     currentFilter = normalizeFilter(filter);
     const pendingOnly = currentFilter === 'pending';
     const doneOnly = currentFilter === 'done';
@@ -177,7 +177,8 @@ export function createControlCenter(doc, callbacks = {}) {
     summary.setAttribute('aria-label', progressLabel);
     summary.title = progressLabel;
 
-    resetView.disabled = completed === 0;
+    resetView.disabled = resetPending || completed === 0;
+    resetView.setAttribute('aria-busy', String(Boolean(resetPending)));
     resetView.title = completed === 0
       ? 'No completed items in this calendar view.'
       : 'Remove checkmarks only from completed items visible in this calendar view.';
@@ -185,7 +186,10 @@ export function createControlCenter(doc, callbacks = {}) {
       ? 'Reset current view unavailable because no visible items are completed'
       : `Reset ${completed} completed item${completed === 1 ? '' : 's'} in this calendar view`);
 
-    if (typeof accentColor === 'string') container.style.setProperty('--sc-assignmark-accent', accentColor);
+    if (typeof accentColor === 'string') {
+      container.style.setProperty('--sc-assignmark-accent', accentColor);
+      container.style.setProperty('--sc-assignmark-accent-foreground', accentForeground(accentColor));
+    }
     const darkSurface = pageUsesDarkSurface(doc);
     container.classList.toggle('sc-cc-dark', darkSurface);
     container.classList.toggle('sc-cc-light', !darkSurface);

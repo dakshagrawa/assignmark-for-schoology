@@ -11,7 +11,7 @@ Assignmark is a Manifest V3 browser extension for personal completion checkoffs 
 - Keeps the in-calendar rail focused on three contextual actions: **Hide done**, **Fade done**, and **Reset view**. Reset view disables itself when there is nothing to reset and reports exactly what changed.
 - Opens a settings popup from the extension toolbar for **All / To do / Done**, **Fade completed**, accent-color customization, explicit all-date **Reset all checkoffs**, and conflict-safe **Undo**.
 - Bundles the MIT-licensed Coloris picker locally; no CDN, remote executable code, or runtime network request is used.
-- Migrates the v1.2 userscript's existing `localStorage` states, settings, and ID map on first extension run.
+- Migrates the v1.2 userscript's existing `localStorage` states, settings, and ID map on first Schoology connection—even if the toolbar popup was opened first.
 - Makes no network requests and contains no remote executable code.
 
 ## Why `chrome.storage.local`

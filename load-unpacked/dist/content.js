@@ -4,6 +4,13 @@
   var DATA_VERSION = 4;
   var FILTER_MODES = Object.freeze(["all", "pending", "done"]);
   var DEFAULT_SETTINGS = Object.freeze({ hide: false, dim: true, filter: "all", accentColor: "#0078d4" });
+  function accentForeground(value) {
+    const match = /^#([0-9a-f]{6})$/i.exec(String(value || ""));
+    if (!match) return "#ffffff";
+    const channels = [0, 2, 4].map((offset) => parseInt(match[1].slice(offset, offset + 2), 16) / 255).map((channel) => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+    const luminance = 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+    return luminance > 0.45 ? "#111111" : "#ffffff";
+  }
   var LEGACY_KEYS = Object.freeze({
     states: "sc_cal_checkbox_states_calendar_only",
     settings: "sc_cal_checkbox_settings_calendar_only",
@@ -399,7 +406,7 @@
     function showUndo(show) {
       undo.hidden = !show;
     }
-    function render2({ filter, dim, total, completed, accentColor }) {
+    function render2({ filter, dim, total, completed, accentColor, resetPending = false }) {
       currentFilter = normalizeFilter(filter);
       const pendingOnly = currentFilter === "pending";
       const doneOnly = currentFilter === "done";
@@ -420,10 +427,14 @@
       summary.textContent = `${completed}/${total}`;
       summary.setAttribute("aria-label", progressLabel);
       summary.title = progressLabel;
-      resetView.disabled = completed === 0;
+      resetView.disabled = resetPending || completed === 0;
+      resetView.setAttribute("aria-busy", String(Boolean(resetPending)));
       resetView.title = completed === 0 ? "No completed items in this calendar view." : "Remove checkmarks only from completed items visible in this calendar view.";
       resetView.setAttribute("aria-label", completed === 0 ? "Reset current view unavailable because no visible items are completed" : `Reset ${completed} completed item${completed === 1 ? "" : "s"} in this calendar view`);
-      if (typeof accentColor === "string") container.style.setProperty("--sc-assignmark-accent", accentColor);
+      if (typeof accentColor === "string") {
+        container.style.setProperty("--sc-assignmark-accent", accentColor);
+        container.style.setProperty("--sc-assignmark-accent-foreground", accentForeground(accentColor));
+      }
       const darkSurface = pageUsesDarkSurface(doc);
       container.classList.toggle("sc-cc-dark", darkSurface);
       container.classList.toggle("sc-cc-light", !darkSurface);
@@ -434,6 +445,42 @@
       showUndo,
       destroy() {
         container.remove();
+      }
+    };
+  }
+
+  // src/reset-action.js
+  function createResetOperation({
+    getExpectedStates,
+    confirmAction = () => true,
+    clear,
+    onPendingChange = () => {
+    },
+    onSuccess = () => {
+    },
+    onZeroResult = () => {
+    },
+    onError = () => {
+    }
+  } = {}) {
+    let pending = false;
+    return async function reset() {
+      if (pending) return;
+      const expectedStates = getExpectedStates?.() || {};
+      const expectedCount = Object.keys(expectedStates).length;
+      if (expectedCount === 0 || !confirmAction(expectedCount, expectedStates)) return;
+      pending = true;
+      onPendingChange(true);
+      try {
+        const snapshot = await clear(expectedStates);
+        const clearedCount = Object.keys(snapshot?.states || {}).length;
+        if (clearedCount > 0) onSuccess(snapshot, clearedCount);
+        else onZeroResult();
+      } catch (error) {
+        onError(error);
+      } finally {
+        pending = false;
+        onPendingChange(false);
       }
     };
   }
@@ -450,6 +497,7 @@
   var registry = new RenderedItemRegistry();
   var controlCenter = null;
   var undoSnapshot = null;
+  var viewResetPending = false;
   var scanQueued = false;
   var scanRunning = false;
   function reportError(error, context) {
@@ -479,6 +527,25 @@
     clearTimeout(Number(notice.dataset.timer));
     notice.dataset.timer = String(setTimeout(() => notice.remove(), 6e3));
   }
+  var resetCurrentView = createResetOperation({
+    getExpectedStates: () => store.checkedSnapshot(registry.completedScopeIds()),
+    confirmAction: (count) => window.confirm(`Reset ${count} completed item${count === 1 ? "" : "s"} in the current view?`),
+    clear: (expectedStates) => store.clearCompleted(expectedStates),
+    onPendingChange: (pending) => {
+      viewResetPending = pending;
+      render();
+    },
+    onSuccess: (snapshot, count) => {
+      undoSnapshot = snapshot;
+      render();
+      showNotice(`Reset ${count} checkoff${count === 1 ? "" : "s"} in this calendar view. Undo is available.`);
+    },
+    onZeroResult: () => {
+      render();
+      showNotice("No checkoffs were reset because the saved data changed.");
+    },
+    onError: (error) => reportError(error, "Resetting current-view checkoffs failed.")
+  });
   function readLegacyData() {
     const parse = (key) => {
       try {
@@ -505,12 +572,13 @@
   function render() {
     const settings = store.getSettings();
     document.documentElement.style.setProperty("--sc-assignmark-accent", settings.accentColor);
+    document.documentElement.style.setProperty("--sc-assignmark-accent-foreground", accentForeground(settings.accentColor));
     for (const id of registry.currentScopeIds()) applyState(id, store.isChecked(id));
     registry.replace(registry.currentScopeIds().flatMap(
       (id) => registry.occurrences(id).map((node) => ({ id, node, checked: store.isChecked(id) }))
     ));
     const summary = summarizeRenderedItems(registry.items());
-    controlCenter?.render({ ...summary, ...settings });
+    controlCenter?.render({ ...summary, ...settings, resetPending: viewResetPending });
     controlCenter?.showUndo(Boolean(undoSnapshot && Object.keys(undoSnapshot.states || {}).length));
   }
   function addCheckbox(node, resolution) {
@@ -579,18 +647,7 @@
           reportError(error, "Saving Fade completed setting failed.");
         }
       },
-      onClearView: async () => {
-        const expectedStates = store.checkedSnapshot(registry.completedScopeIds());
-        const count = Object.keys(expectedStates).length;
-        if (count === 0 || !window.confirm(`Reset ${count} completed item${count === 1 ? "" : "s"} in the current view?`)) return;
-        try {
-          undoSnapshot = await store.clearCompleted(expectedStates);
-          render();
-          showNotice(`Reset ${count} checkoff${count === 1 ? "" : "s"} in this calendar view. Undo is available.`);
-        } catch (error) {
-          reportError(error, "Resetting current-view checkoffs failed.");
-        }
-      },
+      onClearView: resetCurrentView,
       onUndo: async () => {
         if (!undoSnapshot) return;
         const snapshot = undoSnapshot;

@@ -73,8 +73,23 @@
       states: cleanRecord(data.states),
       stateVersions: cleanRecord(data.stateVersions),
       settings: normalizeSettings(data.settings),
-      idMap: cleanRecord(data.idMap)
+      idMap: cleanRecord(data.idMap),
+      legacyMigrationPending: data.legacyMigrationPending === true
     };
+  }
+  function mergeLateLegacyData(current, legacyData) {
+    const legacy = cleanData(legacyData);
+    const settings = { ...current.settings };
+    for (const key of Object.keys(DEFAULT_SETTINGS)) {
+      if (settings[key] === DEFAULT_SETTINGS[key]) settings[key] = legacy.settings[key];
+    }
+    return cleanData({
+      ...current,
+      states: { ...legacy.states, ...current.states },
+      settings,
+      idMap: { ...legacy.idMap, ...current.idMap },
+      legacyMigrationPending: false
+    });
   }
   function nextStateVersion(data, timestamp = Date.now()) {
     const current = Object.values(cleanRecord(data.stateVersions)).map(Number).filter(Number.isFinite).reduce((maximum, value) => Math.max(maximum, value), 0);
@@ -101,14 +116,19 @@
       const stored = await this.storageArea.get([DATA_KEY]);
       if (stored[DATA_KEY]) {
         this.data = cleanData(stored[DATA_KEY]);
+        if (this.data.legacyMigrationPending && legacyData) {
+          this.data = mergeLateLegacyData(this.data, legacyData);
+          await this.storageArea.set({ [DATA_KEY]: this.data });
+        }
       } else if (legacyData) {
-        this.data = cleanData(legacyData);
+        this.data = cleanData({ ...legacyData, legacyMigrationPending: false });
         await this.storageArea.set({ [DATA_KEY]: this.data });
       } else {
         this.data = cleanData({
           states: parseLegacy(this.legacyStorage, LEGACY_KEYS.states),
           settings: parseLegacy(this.legacyStorage, LEGACY_KEYS.settings),
-          idMap: parseLegacy(this.legacyStorage, LEGACY_KEYS.idMap)
+          idMap: parseLegacy(this.legacyStorage, LEGACY_KEYS.idMap),
+          legacyMigrationPending: !this.legacyStorage
         });
         await this.storageArea.set({ [DATA_KEY]: this.data });
       }
@@ -277,6 +297,7 @@
     let initialization = null;
     const ensureInitialized = (legacyData) => {
       if (!initialization) initialization = repository.initialize(legacyData);
+      else if (legacyData) initialization = initialization.then(() => repository.initialize(legacyData));
       return initialization;
     };
     return async function handleStorageMessage(message) {

@@ -28,6 +28,16 @@ test('settings popup clearly separates view, appearance, and data controls', () 
   assert.ok(popup.element.querySelector('[data-role="reset-all"]'));
 });
 
+test('settings popup derives readable foreground tokens for extreme custom accents', () => {
+  const { popup } = setup();
+  popup.render({
+    settings: { filter: 'all', dim: true, accentColor: '#ffffff' },
+    checkedCount: 1
+  });
+
+  assert.equal(popup.element.style.getPropertyValue('--accent-foreground'), '#111111');
+});
+
 test('settings popup explains global reset and disables it when nothing is saved', () => {
   const { popup } = setup();
   const reset = popup.element.querySelector('[data-role="reset-all"]');

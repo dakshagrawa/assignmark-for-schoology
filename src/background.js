@@ -7,6 +7,7 @@ export function createStorageMessageHandler(repository) {
 
   const ensureInitialized = (legacyData) => {
     if (!initialization) initialization = repository.initialize(legacyData);
+    else if (legacyData) initialization = initialization.then(() => repository.initialize(legacyData));
     return initialization;
   };
 

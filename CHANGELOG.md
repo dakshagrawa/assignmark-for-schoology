@@ -20,7 +20,10 @@ All notable changes to Assignmark are documented here.
 ### Fixed
 
 - Reset view now disables itself when there are no completed items in the current rendered calendar scope instead of appearing to do nothing.
-- Reset view now reports the number of checkoffs changed and makes Undo visible after a successful operation.
+- Reset view now reports the number of checkoffs actually changed and makes Undo visible after a successful operation.
+- Popup-first startup no longer blocks the later one-time import of legacy userscript checkoffs and settings.
+- Current-view and all-date resets ignore rapid repeat activation, keep a valid Undo snapshot, and report zero/conflict outcomes honestly.
+- Extreme custom accents now derive a contrasting foreground while keyboard focus uses an accent-independent two-tone ring.
 - The short-viewport rail scrolls internally rather than clipping controls.
 
 ### Security and privacy

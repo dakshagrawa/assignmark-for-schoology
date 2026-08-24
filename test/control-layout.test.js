@@ -24,6 +24,16 @@ test('successful reset feedback is visible without covering the calendar', () =>
   assert.match(rule, /pointer-events\s*:\s*none/);
 });
 
+test('toolbar focus and active foreground remain visible with extreme custom accents', () => {
+  const activeRule = css.match(/\.sc-cc button\[aria-pressed=true\]\s*\{([^}]*)\}/)?.[1] || '';
+  const focusRule = css.match(/\.sc-cal-left-checkbox:focus-visible, \.sc-cc button:focus-visible\s*\{([^}]*)\}/)?.[1] || '';
+  assert.match(activeRule, /color\s*:\s*var\(--sc-assignmark-accent-foreground/);
+  assert.match(focusRule, /box-shadow\s*:[^;]*!important/);
+  assert.doesNotMatch(focusRule, /outline[^;]*var\(--sc-assignmark-accent/);
+  const noticeRule = css.match(/\.sc-cal-notice\s*\{([^}]*)\}/)?.[1] || '';
+  assert.match(noticeRule, /color\s*:\s*var\(--sc-assignmark-accent-foreground/);
+});
+
 test('primary controls use consistent touch targets and an adaptive glass surface', () => {
   const buttonRule = css.match(/\.sc-cc \.sc-icon-btn\s*\{([^}]*)\}/)?.[1] || '';
   const width = Number(buttonRule.match(/width\s*:\s*(\d+)px/)?.[1]);

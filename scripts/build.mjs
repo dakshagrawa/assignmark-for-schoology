@@ -3,6 +3,7 @@ import { ZipArchive } from 'archiver';
 import { cp, mkdir, readFile, rm } from 'node:fs/promises';
 import { createWriteStream } from 'node:fs';
 import path from 'node:path';
+import { validateReleaseManifest } from './manifest-validation.mjs';
 const { resolve } = path;
 
 const root = path.resolve(import.meta.dirname, '..');
@@ -38,9 +39,7 @@ await cp(path.join(root, 'icons'), path.join(release, 'icons'), { recursive: tru
 await cp(release, unpacked, { recursive: true });
 
 const manifest = JSON.parse(await readFile(path.join(release, 'manifest.json'), 'utf8'));
-if (manifest.manifest_version !== 3 || manifest.permissions.some((permission) => permission !== 'storage')) {
-  throw new Error('Manifest permission validation failed.');
-}
+validateReleaseManifest(manifest);
 
 const zipPath = path.join(root, `assignmark-for-schoology-${manifest.version}.zip`);
 await rm(zipPath, { force: true });

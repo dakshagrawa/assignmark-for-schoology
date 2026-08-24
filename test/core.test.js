@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
 import {
   DEFAULT_SETTINGS,
+  accentForeground,
   DataRepository,
   ExtensionStore,
   buildIdCandidates,
@@ -108,6 +109,13 @@ test('filter setting defaults to all', async () => {
   const store = new ExtensionStore(new MemoryStorageArea());
   await store.initialize();
   assert.equal(store.getSettings().filter, 'all');
+});
+
+test('accent foreground remains readable for light and dark custom colors', () => {
+  assert.equal(accentForeground('#ffffff'), '#111111');
+  assert.equal(accentForeground('#000000'), '#ffffff');
+  assert.equal(accentForeground('#ffea00'), '#111111');
+  assert.equal(accentForeground('#0078d4'), '#ffffff');
 });
 
 test('accent color defaults, normalizes, and rejects unsafe CSS values', async () => {

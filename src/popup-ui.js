@@ -1,3 +1,5 @@
+import { accentForeground } from './core.js';
+
 const ACCENT_SWATCHES = Object.freeze([
   '#0078d4',
   '#0a84ff',
@@ -102,7 +104,7 @@ export function createSettingsPopup(doc, callbacks = {}) {
   resetAll.addEventListener('click', () => void callbacks.onResetAll?.());
   undo.addEventListener('click', () => void callbacks.onUndo?.());
 
-  function render({ settings = {}, checkedCount = 0, canUndo = false } = {}) {
+  function render({ settings = {}, checkedCount = 0, canUndo = false, resetPending = false } = {}) {
     const filter = ['all', 'pending', 'done'].includes(settings.filter) ? settings.filter : 'all';
     currentDim = Boolean(settings.dim);
     const accentColor = /^#[0-9a-f]{6}$/i.test(String(settings.accentColor || ''))
@@ -116,9 +118,11 @@ export function createSettingsPopup(doc, callbacks = {}) {
     accentInput.value = accentColor;
     colorPreview.style.background = accentColor;
     shell.style.setProperty('--accent', accentColor);
+    shell.style.setProperty('--accent-foreground', accentForeground(accentColor));
 
     const count = Math.max(0, Number(checkedCount) || 0);
-    resetAll.disabled = count === 0;
+    resetAll.disabled = resetPending || count === 0;
+    resetAll.setAttribute('aria-busy', String(Boolean(resetPending)));
     resetAll.setAttribute('aria-label', count === 0
       ? 'Reset all checkoffs unavailable because none are saved'
       : `Reset all ${count} saved checkoffs across every calendar date`);
@@ -126,6 +130,7 @@ export function createSettingsPopup(doc, callbacks = {}) {
       ? 'No saved checkoffs to reset.'
       : `Removes ${count} saved checkoff${count === 1 ? '' : 's'} from every calendar date.`;
     undo.hidden = !canUndo;
+    undo.disabled = Boolean(resetPending);
   }
 
   function setStatus(message = '', tone = 'neutral') {
