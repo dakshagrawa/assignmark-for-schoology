@@ -85,6 +85,22 @@ test('coordinator imports page legacy data only when extension storage is empty'
   assert.equal(first.snapshot().idMap['legacy-alias'], 'legacy-id');
 });
 
+test('popup-first initialization still imports legacy data when the Schoology page connects', async () => {
+  const { first: popup, second: content } = clientPair();
+
+  await popup.initialize();
+  await content.initialize({
+    states: { 'legacy-id': 123 },
+    settings: { hide: true, dim: false },
+    idMap: { 'legacy-alias': 'legacy-id' }
+  });
+
+  assert.equal(content.isChecked('legacy-id'), true);
+  assert.equal(content.getSettings().filter, 'pending');
+  assert.equal(content.getSettings().dim, false);
+  assert.equal(content.snapshot().idMap['legacy-alias'], 'legacy-id');
+});
+
 test('coordinator rejects unknown and removed storage operations', async () => {
   const { repository } = clientPair();
   const handle = createStorageMessageHandler(repository);

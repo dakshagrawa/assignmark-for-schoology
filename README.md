@@ -1,6 +1,6 @@
 # Assignmark: Schoology Checkoffs
 
-Assignmark is a Manifest V3 browser extension for personal completion checkoffs in Schoology. Version 2.1 adds persistent calendar checkboxes plus a current-view control center with progress, All/Pending/Done filters, scoped and global clearing, one-level Undo, and cross-tab-safe local storage coordination at `https://fuhsd.schoology.com/*`; later versions will carefully extend the same canonical state across other Schoology assignment listings.
+Assignmark is a Manifest V3 browser extension for personal completion checkoffs in Schoology. Version 2.2 combines persistent calendar checkboxes with a compact v2.0-style action rail, an Apple-inspired extension settings popup, locally customizable accent colors, explicit reset scopes, one-level Undo, and cross-tab-safe local storage coordination at `https://fuhsd.schoology.com/*`.
 
 ## Features
 
@@ -8,8 +8,10 @@ Assignmark is a Manifest V3 browser extension for personal completion checkoffs 
 - Resolves canonical IDs from assignment/event links and `data-*` identifiers.
 - Falls back to a content + DOM-path fingerprint while maintaining semantic aliases and a persistent ID map across rerenders.
 - Keeps checked states through page reloads, calendar navigation, and DOM replacement.
-- Provides a current-view control center with **All**, **Pending**, **Done**, **Dim**, scoped **Clear view**, global **Clear all**, and one-level **Undo**.
-- Migrates the v1.2 userscript's existing `localStorage` states, settings, and ID map on first extension run.
+- Keeps the in-calendar rail focused on three contextual actions: **Hide done**, **Fade done**, and **Reset view**. Reset view disables itself when there is nothing to reset and reports exactly what changed.
+- Opens a settings popup from the extension toolbar for **All / To do / Done**, **Fade completed**, accent-color customization, explicit all-date **Reset all checkoffs**, and conflict-safe **Undo**.
+- Bundles the MIT-licensed Coloris picker locally; no CDN, remote executable code, or runtime network request is used.
+- Migrates the v1.2 userscript's existing `localStorage` states, settings, and ID map on first Schoology connection—even if the toolbar popup was opened first.
 - Makes no network requests and contains no remote executable code.
 
 ## Why `chrome.storage.local`
@@ -41,6 +43,11 @@ src/background.js             Cross-tab storage mutation coordinator
 src/storage-client.js         Content-script storage protocol client
 src/calendar-adapter.js       Calendar discovery and current-view registry
 src/control-center.js         Filter/progress/action UI
+src/popup.html                Extension-toolbar settings popup shell
+src/popup.js                  Popup runtime and local Coloris initialization
+src/popup-ui.js               Tested settings UI component
+src/popup-controller.js       Serialized settings/reset coordination
+THIRD_PARTY_NOTICES.md        Bundled open-source component notices
 icons/                        16/32/48/128 px extension icons
 scripts/build.mjs             Bundle, validate manifest, and create store ZIP
 test/core.test.js             Node/jsdom unit and regression tests
@@ -61,13 +68,13 @@ npm run build
 ```
 
 - **Ready-to-load Chrome folder:** `load-unpacked/` is committed to the repository so users can clone or download the source and load it immediately. Running `npm run build` refreshes this folder.
-- **Store ZIP:** `assignmark-for-schoology-2.1.1.zip`.
+- **Store ZIP:** `assignmark-for-schoology-2.2.0.zip`.
 
 `npm run build` creates:
 
 - `load-unpacked/` — ready to select with Chrome's **Load unpacked** button
 - `dist/release/` — identical packaged runtime directory used to create the store ZIP
-- `assignmark-for-schoology-2.1.1.zip` — uploadable Chrome Web Store package
+- `assignmark-for-schoology-2.2.0.zip` — uploadable Chrome Web Store package
 
 `npm run check` runs the complete test suite and production build.
 
@@ -79,13 +86,14 @@ npm run build
 4. Click **Load unpacked** and choose the repository's `load-unpacked/` folder.
 5. Open the FUHSD Schoology calendar and confirm each item receives one checkbox.
 6. Check both canonical and linkless events, navigate calendar views, and reload to verify persistence.
-7. Test **All/Pending/Done**, **Dim**, **Clear view**, **Clear all**, and **Undo**. Both clear actions require count-specific confirmation.
+7. Test the calendar rail's **Hide done**, **Fade done**, and **Reset view** controls. Confirm Reset view is disabled with zero completed items and becomes available after checking an item.
+8. Click the Assignmark toolbar icon and test **All / To do / Done**, **Fade completed**, accent colors, **Reset all checkoffs**, and **Undo**. Reset view and Reset all each use count-specific scope wording.
 
 The developer must use their own authorized Schoology session. No credentials belong in this repository or in reviewer notes unless the store explicitly provides a secure reviewer-credential field.
 
-## Control center vs. options page
+## Calendar rail and settings popup
 
-The controls remain in an in-page calendar control center, where their current-view scope is visible. A separate options page would add navigation and maintenance surface without improving this workflow. Do not build both unless future settings become complex or need configuration away from Schoology.
+Contextual actions remain beside the calendar: Hide done, Fade done, and Reset view. Global preferences and destructive all-date reset live in the extension-toolbar popup so the calendar stays uncluttered and the two reset scopes cannot be mistaken for each other.
 
 ## Browser portability
 

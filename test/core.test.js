@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
 import {
   DEFAULT_SETTINGS,
+  accentForeground,
   DataRepository,
   ExtensionStore,
   buildIdCandidates,
@@ -108,6 +109,27 @@ test('filter setting defaults to all', async () => {
   const store = new ExtensionStore(new MemoryStorageArea());
   await store.initialize();
   assert.equal(store.getSettings().filter, 'all');
+});
+
+test('accent foreground remains readable for light and dark custom colors', () => {
+  assert.equal(accentForeground('#ffffff'), '#000000');
+  assert.equal(accentForeground('#000000'), '#ffffff');
+  assert.equal(accentForeground('#ffea00'), '#000000');
+  assert.equal(accentForeground('#0078d4'), '#000000');
+  assert.equal(accentForeground('#888888'), '#000000');
+  assert.equal(accentForeground('#777777'), '#000000');
+});
+
+test('accent color defaults, normalizes, and rejects unsafe CSS values', async () => {
+  const store = new ExtensionStore(new MemoryStorageArea());
+  await store.initialize();
+  assert.equal(store.getSettings().accentColor, '#0078d4');
+
+  await store.updateSettings({ accentColor: '#FF2D55' });
+  assert.equal(store.getSettings().accentColor, '#ff2d55');
+
+  await store.updateSettings({ accentColor: 'url(https://example.com)' });
+  assert.equal(store.getSettings().accentColor, '#0078d4');
 });
 
 test('filter setting migrates legacy hide and rejects invalid values', async () => {

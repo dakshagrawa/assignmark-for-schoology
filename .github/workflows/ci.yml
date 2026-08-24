@@ -21,4 +21,6 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      - run: git diff --exit-code -- load-unpacked
+      - run: test -z "$(git status --porcelain --untracked-files=all -- load-unpacked)"
       - run: npm audit --audit-level=high

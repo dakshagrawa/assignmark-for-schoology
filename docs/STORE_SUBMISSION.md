@@ -1,6 +1,6 @@
 # Chrome Web Store submission guide
 
-This guide is specific to **Assignmark: Schoology Checkoffs 2.1.1**. Recheck store policy pages before submission because dashboard fields and policies change.
+This guide is specific to **Assignmark: Schoology Checkoffs 2.2.0**. Recheck store policy pages before submission because dashboard fields and policies change.
 
 ## 1. Create the developer account
 
@@ -23,10 +23,11 @@ Then load `load-unpacked/` from `chrome://extensions` in a clean profile and tes
 - linkless fallback event;
 - check → calendar navigation → rerender → reload;
 - uncheck;
-- Dim; All/Pending/Done filters; scoped Clear view; global Clear all; and one-level Undo (including canceling each clear confirmation);
+- the calendar rail's Hide done, Fade done, and count-specific Reset view behavior;
+- the extension-toolbar popup's All / To do / Done filters, Fade completed explanation, locally bundled color picker, all-date Reset all checkoffs, and one-level Undo (including canceling each reset confirmation);
 - browser console has no extension errors.
 
-Upload `assignmark-for-schoology-2.1.1.zip`. `manifest.json` is at the ZIP root. The package contains one local MV3 service worker used only to serialize `chrome.storage.local` mutations across Schoology tabs; it contains no remote script, source map, secret, or test fixture.
+Upload `assignmark-for-schoology-2.2.0.zip`. `manifest.json` is at the ZIP root. The package contains one local MV3 service worker used only to serialize `chrome.storage.local` mutations across Schoology tabs; it contains no remote script, source map, secret, or test fixture.
 
 ## 3. Prepare listing assets separately
 
@@ -49,11 +50,11 @@ A privacy policy **is required here** because the extension handles user informa
 
 Do not paste a generic policy. Host a stable, publicly accessible policy URL and ensure it covers:
 
-- **Data handled:** normalized calendar title/time/date/link or `data-*` identifiers used to derive hashed/mapped item IDs; completion timestamps; filter/Dim settings; legacy v1.2 values read once for migration.
+- **Data handled:** normalized calendar title/time/date/link or `data-*` identifiers used to derive hashed/mapped item IDs; completion timestamps; filter/Fade/accent-color settings; legacy v1.2 values read once for migration.
 - **Purpose:** only identifying calendar entries, retaining completion choices, and applying display preferences.
 - **Storage/location:** `chrome.storage.local` in the user's browser profile; legacy Schoology `localStorage` is read for migration and is not deleted.
 - **Transmission/sharing/sale:** no data is transmitted to the maintainer or third parties, sold, used for advertising, analytics, profiling, or unrelated purposes.
-- **Retention/deletion:** data remains until the user presses Clear, removes the extension/its data, or clears extension storage; explain that Clear removes checkbox states but keeps display settings and the ID map.
+- **Retention/deletion:** data remains until the user uses Reset view or Reset all checkoffs, removes the extension/its data, or clears extension storage; explain that reset removes checkbox states but keeps display settings and the ID map.
 - **Security:** no remote code or external API; least-privilege single-site operation.
 - **User controls:** how to clear checkbox states, uninstall, and contact the maintainer about privacy questions.
 - **Policy changes:** effective date and how material changes will be communicated.
@@ -63,7 +64,7 @@ Google says a policy generally needs to explain collection, use, disclosure, sec
 Recommended dashboard answers for the current build:
 
 - **Single purpose:** persistent completion controls for the FUHSD Schoology calendar.
-- **`storage` justification:** retain checkbox states, ID reconciliation mappings, filter/Dim preferences, and conflict-safe mutations across Schoology tabs; migrate prior userscript values once.
+- **`storage` justification:** retain checkbox states, ID reconciliation mappings, filter/Fade/accent-color preferences, and conflict-safe mutations across Schoology tabs; migrate prior userscript values once.
 - **Site access justification:** inject only on `https://fuhsd.schoology.com/*` so controls can be attached to that calendar. No broader host scope is requested.
 - **Remote code:** No. All executable JavaScript ships in the ZIP. MV3 disallows remotely hosted executable code, and undeclared remote code is a rejection risk.[3]
 - **Data handling:** disclose locally processed calendar-derived identifiers and preferences; indicate no external transmission. Chrome's privacy tab asks for purpose, permission justifications, remote-code declaration, data-use disclosures, certifications, and a privacy-policy link.[3]
@@ -84,7 +85,7 @@ Recommended dashboard answers for the current build:
 - **Single-site scope:** the content script match is limited to FUHSD Schoology. Avoid `<all_urls>` and unrelated host permissions.
 - **`storage` permission:** necessary and explainable; the local service worker adds no named permission, and there are no tabs, activeTab, identity, cookies, webRequest, scripting, or downloads permissions.
 - **Student/calendar data:** even local-only derivation must be disclosed. Screenshots must not expose student records.
-- **No remote code:** icons, CSS, and the bundled script are all packaged locally.
+- **No remote code:** icons, CSS, extension scripts, and the MIT-licensed Coloris picker are all packaged locally. `THIRD_PARTY_NOTICES.md` carries the required notice.
 - **No affiliation claim:** describe compatibility with FUHSD Schoology without claiming that FUHSD or PowerSchool/Schoology created or endorsed it.
 - **Authentication:** the extension does not bypass login or collect credentials; it runs after the user accesses Schoology normally.
 

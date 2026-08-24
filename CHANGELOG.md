@@ -2,6 +2,36 @@
 
 All notable changes to Assignmark are documented here.
 
+## 2.2.0 — 2026-08-23
+
+### Added
+
+- Extension-toolbar settings popup with Apple-inspired light/dark surfaces, All / To do / Done filtering, a clearly explained Fade completed switch, and local accent-color customization.
+- Locally bundled, MIT-licensed Coloris color picker with six curated presets and validated six-digit hex input.
+- Count-specific success feedback for current-view reset and all-date reset, with conflict-safe one-level Undo.
+
+### Changed
+
+- Restored the focused v2.0-style three-action calendar rail: Hide done, Fade done, and Reset view.
+- Moved global Reset all checkoffs into the settings popup, where its all-date scope and affected count are explicit.
+- Replaced the ambiguous Dim wording with Fade done / Fade completed and an explanation that fading never hides, deletes, or unchecks an item.
+- Added adaptive dark/light calendar surfaces, consistent icons, compact labels, keyboard focus, and a user-selected accent color.
+
+### Fixed
+
+- Reset view now disables itself when there are no completed items in the current rendered calendar scope instead of appearing to do nothing.
+- Reset view now reports the number of checkoffs actually changed and makes Undo visible after a successful operation.
+- Popup-first startup no longer blocks the later one-time import of legacy userscript checkoffs and settings.
+- Current-view and all-date resets ignore rapid repeat activation, keep a valid Undo snapshot, and report zero/conflict outcomes honestly.
+- Extreme custom accents now derive a contrasting foreground while keyboard focus uses an accent-independent two-tone ring.
+- The short-viewport rail scrolls internally rather than clipping controls.
+
+### Security and privacy
+
+- Named permissions remain exactly `storage`; no `tabs`, `activeTab`, or additional host permissions were added.
+- Content-script scope remains exactly `https://fuhsd.schoology.com/*`.
+- Coloris ships inside the extension package; no remote code, CDN, analytics, or external request was added.
+
 ## 2.1.1 — 2026-08-23
 
 ### Fixed
