@@ -18,8 +18,22 @@ let undoSnapshot = null;
 let viewResetPending = false;
 let scanQueued = false;
 let scanRunning = false;
+let contextInvalidated = false;
+
+function extensionContextIsValid() {
+  return Boolean(chrome.runtime?.id);
+}
+
+let scanTimerId = null;
+
+function stopBackgroundWork() {
+  contextInvalidated = true;
+  if (scanTimerId !== null) clearInterval(scanTimerId);
+  scanTimerId = null;
+}
 
 function reportError(error, context) {
+  if (contextInvalidated || !extensionContextIsValid()) return;
   console.error(`[Assignmark] ${context}`, error);
   let notice = document.querySelector('.sc-cal-error');
   if (!notice) {
@@ -182,6 +196,7 @@ function ensureControlCenter() {
 }
 
 async function scan() {
+  if (contextInvalidated || !extensionContextIsValid()) { stopBackgroundWork(); return; }
   if (scanRunning) { scanQueued = true; return; }
   scanRunning = true;
   try {
@@ -198,14 +213,17 @@ async function scan() {
     registry.replace(entries);
     render();
   } catch (error) {
-    reportError(error, 'Scanning calendar items failed.');
+    if (!extensionContextIsValid()) { stopBackgroundWork(); }
+    else reportError(error, 'Scanning calendar items failed.');
   } finally {
     scanRunning = false;
-    if (scanQueued) { scanQueued = false; queueMicrotask(scan); }
+    if (scanQueued && !contextInvalidated) { scanQueued = false; queueMicrotask(scan); }
+    else if (contextInvalidated) scanQueued = false;
   }
 }
 
 function scheduleScan() {
+  if (contextInvalidated) return;
   if (scanQueued) return;
   scanQueued = true;
   queueMicrotask(() => { scanQueued = false; void scan(); });
@@ -222,7 +240,7 @@ async function init() {
   chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName === 'local' && changes[DATA_KEY]) scheduleScan();
   });
-  setInterval(scheduleScan, POLL_MS);
+  scanTimerId = setInterval(scheduleScan, POLL_MS);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) scheduleScan(); });
   window.addEventListener('focus', scheduleScan);
 }

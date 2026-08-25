@@ -600,7 +600,18 @@
   var viewResetPending = false;
   var scanQueued = false;
   var scanRunning = false;
+  var contextInvalidated = false;
+  function extensionContextIsValid() {
+    return Boolean(chrome.runtime?.id);
+  }
+  var scanTimerId = null;
+  function stopBackgroundWork() {
+    contextInvalidated = true;
+    if (scanTimerId !== null) clearInterval(scanTimerId);
+    scanTimerId = null;
+  }
   function reportError(error, context) {
+    if (contextInvalidated || !extensionContextIsValid()) return;
     console.error(`[Assignmark] ${context}`, error);
     let notice = document.querySelector(".sc-cal-error");
     if (!notice) {
@@ -779,6 +790,10 @@
     document.body.appendChild(controlCenter.element);
   }
   async function scan() {
+    if (contextInvalidated || !extensionContextIsValid()) {
+      stopBackgroundWork();
+      return;
+    }
     if (scanRunning) {
       scanQueued = true;
       return;
@@ -798,16 +813,19 @@
       registry.replace(entries);
       render();
     } catch (error) {
-      reportError(error, "Scanning calendar items failed.");
+      if (!extensionContextIsValid()) {
+        stopBackgroundWork();
+      } else reportError(error, "Scanning calendar items failed.");
     } finally {
       scanRunning = false;
-      if (scanQueued) {
+      if (scanQueued && !contextInvalidated) {
         scanQueued = false;
         queueMicrotask(scan);
-      }
+      } else if (contextInvalidated) scanQueued = false;
     }
   }
   function scheduleScan() {
+    if (contextInvalidated) return;
     if (scanQueued) return;
     scanQueued = true;
     queueMicrotask(() => {
@@ -830,7 +848,7 @@
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName === "local" && changes[DATA_KEY]) scheduleScan();
     });
-    setInterval(scheduleScan, POLL_MS);
+    scanTimerId = setInterval(scheduleScan, POLL_MS);
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden) scheduleScan();
     });
