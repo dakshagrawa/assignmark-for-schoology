@@ -2,6 +2,18 @@
 
 All notable changes to Assignmark are documented here.
 
+## 2.2.3 — 2026-08-24
+
+### Changed
+
+- Restored the focused v2.0-style compact calendar rail: 52×52px opaque control tiles with concise `Hide` / `Dim` / `Clear` labels.
+- Move mode now uses a small opaque tool palette beside the rail instead of a blurred full-rail overlay.
+
+### Fixed
+
+- Removed frosted-glass blur and heavy button borders from the calendar controls for a cleaner, human-feeling surface.
+- The move palette stays inside the viewport at the default right-anchored rail position, including narrow viewports and when its padding is included in the declared width (`box-sizing: border-box`).
+
 ## 2.2.2 — 2026-08-24
 
 ### Fixed
