@@ -41,3 +41,18 @@ test('content entrypoint applies the saved accent color to calendar checkboxes a
 test('content entrypoint removes the calendar-only control center when the calendar leaves the DOM', () => {
   assert.match(source, /if \(!adapter\.isPresent\(\)\) \{\s*controlCenter\?\.destroy\(\);\s*controlCenter = null;\s*return;\s*\}/);
 });
+
+test('invalidated extension context stops background work instead of surfacing repeated errors', () => {
+  assert.match(source, /function extensionContextIsValid\(\)/);
+  assert.match(source, /chrome\.runtime\?\.id/);
+  assert.match(source, /if \(contextInvalidated \|\| !extensionContextIsValid\(\)\) \{ stopBackgroundWork\(\); return; \}/);
+  assert.match(source, /scanTimerId = setInterval\(scheduleScan, POLL_MS\);/);
+  assert.match(source, /if \(scanTimerId !== null\) clearInterval\(scanTimerId\);/);
+  assert.match(source, /if \(contextInvalidated\) return;\s*if \(scanQueued\) return;/);
+  assert.match(source, /if \(!extensionContextIsValid\(\)\) \{ stopBackgroundWork\(\); \}/);
+});
+
+test('error reporting stays silent once the extension context is invalidated', () => {
+  const reportRule = source.match(/function reportError\(error, context\) \{([\s\S]*?)\n\}/)?.[1] || '';
+  assert.match(reportRule, /if \(contextInvalidated \|\| !extensionContextIsValid\(\)\) return;/);
+});
