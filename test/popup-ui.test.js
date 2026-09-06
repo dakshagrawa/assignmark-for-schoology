@@ -12,6 +12,7 @@ function setup() {
     onAccentChange: (color) => calls.push(['accent', color]),
     onControlVisibilityChange: (name, visible) => calls.push(['visibility', name, visible]),
     onControlScaleChange: (value) => calls.push(['scale', value]),
+    onControlDockChange: (dock) => calls.push(['dock', dock]),
     onMoveControls: () => calls.push(['move']),
     onResetSettings: () => calls.push(['reset-settings']),
     onResetAll: () => calls.push(['reset-all']),
@@ -25,11 +26,30 @@ test('settings popup clearly separates view, appearance, and data controls', () 
   const { popup } = setup();
   assert.ok(popup.element.querySelector('[data-section="view"]'));
   assert.ok(popup.element.querySelector('[data-section="appearance"]'));
+  assert.ok(popup.element.querySelector('[data-section="rail"]'));
   assert.ok(popup.element.querySelector('[data-section="data"]'));
   assert.equal(popup.element.querySelectorAll('[data-filter]').length, 3);
   assert.ok(popup.element.querySelector('[data-role="fade-completed"]'));
   assert.ok(popup.element.querySelector('[data-role="accent-color"]'));
   assert.ok(popup.element.querySelector('[data-role="reset-all"]'));
+});
+
+test('settings popup offers useful rail position presets', () => {
+  const { popup, calls } = setup();
+  const docks = [...popup.element.querySelectorAll('[data-control-dock]')];
+  assert.deepEqual(docks.map((button) => button.dataset.controlDock), [
+    'top-left', 'top-right', 'bottom-left', 'bottom-right'
+  ]);
+  popup.render({ settings: { controlDock: 'top-right' } });
+  assert.equal(popup.element.querySelector('[data-control-dock="top-right"]').getAttribute('aria-pressed'), 'true');
+  popup.element.querySelector('[data-control-dock="bottom-left"]').click();
+  assert.deepEqual(calls, [['dock', 'bottom-left']]);
+});
+
+test('calendar control visibility labels use the concise button names', () => {
+  const { popup } = setup();
+  const labels = [...popup.element.querySelectorAll('.visibility-option span')].map((node) => node.textContent.trim());
+  assert.deepEqual(labels, ['Hide done', 'Fade done', 'Reset view']);
 });
 
 test('settings popup derives readable foreground tokens for extreme custom accents', () => {

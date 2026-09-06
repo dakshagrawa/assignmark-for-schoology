@@ -2,6 +2,18 @@
 
 All notable changes to Assignmark are documented here.
 
+## 2.2.4 — 2026-08-30
+
+### Fixed
+
+- Detects Chrome's rejected `Extension context invalidated` message even when `chrome.runtime.id` is still present, then silently stops the stale content script instead of adding a repeated extension error or false save-error banner.
+- Context teardown now clears polling, disconnects the calendar observer, removes storage/focus/visibility listeners, and prevents queued scans from restarting after an unpacked-extension reload or update.
+
+### Changed
+
+- Consolidated the settings popup into one solid, tokenized light/dark surface system with restrained shadows, a consistent blue focus ring, and 44px primary interaction targets.
+- Simplified calendar-control visibility labels to `Hide done`, `Fade done`, and `Reset view` without adding settings or changing behavior.
+
 ## 2.2.3 — 2026-08-24
 
 ### Changed

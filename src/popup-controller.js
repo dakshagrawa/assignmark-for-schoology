@@ -131,6 +131,7 @@ export async function initSettingsPopup(doc, {
     onAccentChange: updateAccent,
     onControlVisibilityChange: (name, visible) => updateControlSetting(`show${name[0].toUpperCase()}${name.slice(1)}`, visible, `${name} button ${visible ? 'shown' : 'hidden'}.`),
     onControlScaleChange: (value) => updateControlSetting('controlScale', value, `Button size set to ${value}%.`),
+    onControlDockChange: (controlDock) => updateControlSetting('controlDock', controlDock, `Calendar rail moved to ${controlDock.replace('-', ' ')}.`),
     onMoveControls: () => updateControlSetting('moveMode', true, 'Move mode enabled on the calendar. Drag the highlighted rail and lock it there.'),
     onResetSettings: resetSettings,
     onResetAll: resetAll,

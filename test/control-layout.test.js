@@ -50,3 +50,9 @@ test('move controls use a separate opaque palette instead of an overlay cover', 
   assert.match(overlayRule, /border-radius\s*:\s*10px/);
   assert.doesNotMatch(overlayRule, /dashed|blur\(/);
 });
+
+test('move controls are not clipped outside the narrow rail', () => {
+  const railRule = css.match(/\.sc-cc\s*\{([^}]*)\}/)?.[1] || '';
+  assert.match(railRule, /overflow\s*:\s*visible/);
+  assert.doesNotMatch(railRule, /overflow-y\s*:\s*auto/);
+});

@@ -227,21 +227,82 @@ test('control center applies visibility, percentage scale, and move overlay sett
   assert.deepEqual(calls, ['lock']);
 });
 
-test('move mode disables normal actions and blocks their callbacks', () => {
+test('move mode keeps the v2 primary actions usable while exposing drag controls', () => {
   const dom = new JSDOM('<!doctype html><body></body>');
   const calls = [];
   const controlCenter = createControlCenter(dom.window.document, {
     onFilterChange: () => calls.push('filter'),
     onDimChange: () => calls.push('dim'),
-    onClearView: () => calls.push('clear'),
-    onUndo: () => calls.push('undo')
+    onClearView: () => calls.push('clear')
   });
   controlCenter.render({ filter: 'all', total: 3, completed: 1, moveMode: true });
-  for (const role of ['hide-done', 'dim', 'clear-view', 'undo']) {
+  for (const role of ['hide-done', 'dim', 'clear-view']) {
     const button = controlCenter.element.querySelector(`[data-role="${role}"]`);
     button.click();
-    assert.equal(button.disabled, true);
-    assert.equal(button.getAttribute('aria-disabled'), 'true');
+    assert.equal(button.disabled, false);
+    assert.equal(button.getAttribute('aria-disabled'), 'false');
   }
-  assert.deepEqual(calls, []);
+  assert.deepEqual(calls, ['filter', 'dim', 'clear']);
+  assert.equal(controlCenter.element.querySelector('.sc-cc-move-overlay').hidden, false);
+});
+
+test('move mode never starts a drag from a primary rail button', () => {
+  const dom = new JSDOM('<!doctype html><body></body>', { pretendToBeVisual: true });
+  const positions = [];
+  const controlCenter = createControlCenter(dom.window.document, {
+    onPositionChange: (position) => positions.push(position)
+  });
+  dom.window.document.body.appendChild(controlCenter.element);
+  controlCenter.render({ filter: 'all', total: 3, completed: 1, moveMode: true });
+  const pointer = (type, x, y) => {
+    const event = new dom.window.Event(type, { bubbles: true, cancelable: true });
+    Object.assign(event, { pointerId: 9, clientX: x, clientY: y });
+    return event;
+  };
+  const hide = controlCenter.element.querySelector('[data-role="hide-done"]');
+  hide.dispatchEvent(pointer('pointerdown', 100, 100));
+  controlCenter.element.dispatchEvent(pointer('pointermove', 76, 84));
+  controlCenter.element.dispatchEvent(pointer('pointerup', 76, 84));
+  assert.deepEqual(positions, []);
+});
+
+test('move mode lets the user drag the visible rail itself and persists the result', () => {
+  const dom = new JSDOM('<!doctype html><body></body>', { pretendToBeVisual: true });
+  const positions = [];
+  const controlCenter = createControlCenter(dom.window.document, {
+    onPositionChange: (position) => positions.push(position)
+  });
+  dom.window.document.body.appendChild(controlCenter.element);
+  controlCenter.render({ filter: 'all', total: 3, completed: 1, moveMode: true });
+
+  const pointer = (type, x, y) => {
+    const event = new dom.window.Event(type, { bubbles: true, cancelable: true });
+    Object.assign(event, { pointerId: 7, clientX: x, clientY: y });
+    return event;
+  };
+  controlCenter.element.setPointerCapture = () => { throw new dom.window.DOMException('NotFoundError'); };
+  controlCenter.element.dispatchEvent(pointer('pointerdown', 100, 100));
+  controlCenter.element.dispatchEvent(pointer('pointermove', 76, 84));
+  controlCenter.element.dispatchEvent(pointer('pointerup', 76, 84));
+
+  assert.deepEqual(positions, [{ right: 36, bottom: 86 }]);
+  assert.equal(controlCenter.element.style.getPropertyValue('--sc-control-right'), '36px');
+  assert.equal(controlCenter.element.style.getPropertyValue('--sc-control-bottom'), '86px');
+});
+
+test('rail dock presets place controls at predictable viewport corners', () => {
+  const dom = new JSDOM('<!doctype html><body></body>', { pretendToBeVisual: true });
+  Object.defineProperty(dom.window, 'innerWidth', { value: 1000, configurable: true });
+  Object.defineProperty(dom.window, 'innerHeight', { value: 800, configurable: true });
+  const controlCenter = createControlCenter(dom.window.document, {});
+  controlCenter.element.getBoundingClientRect = () => ({ width: 52, height: 220 });
+  dom.window.document.body.appendChild(controlCenter.element);
+
+  controlCenter.render({ filter: 'all', total: 1, completed: 0, controlDock: 'top-left' });
+  assert.equal(controlCenter.element.style.getPropertyValue('--sc-control-right'), '936px');
+  assert.equal(controlCenter.element.style.getPropertyValue('--sc-control-bottom'), '568px');
+
+  controlCenter.render({ filter: 'all', total: 1, completed: 0, controlDock: 'bottom-right' });
+  assert.equal(controlCenter.element.style.getPropertyValue('--sc-control-right'), '12px');
+  assert.equal(controlCenter.element.style.getPropertyValue('--sc-control-bottom'), '12px');
 });

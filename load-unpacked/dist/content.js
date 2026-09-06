@@ -4,7 +4,8 @@
   var DATA_VERSION = 4;
   var FILTER_MODES = Object.freeze(["all", "pending", "done"]);
   var CONTROL_SCALE_RANGE = Object.freeze({ min: 80, max: 120, step: 5 });
-  var DEFAULT_SETTINGS = Object.freeze({ hide: false, dim: true, filter: "all", accentColor: "#0a84ff", controlScale: 100, showHideDone: true, showFadeDone: true, showResetView: true, moveMode: false, controlPosition: Object.freeze({ right: 12, bottom: 70 }) });
+  var CONTROL_DOCKS = Object.freeze(["top-left", "top-right", "bottom-left", "bottom-right", "custom"]);
+  var DEFAULT_SETTINGS = Object.freeze({ hide: false, dim: true, filter: "all", accentColor: "#0a84ff", controlScale: 100, showHideDone: true, showFadeDone: true, showResetView: true, moveMode: false, controlDock: "bottom-right", controlPosition: Object.freeze({ right: 12, bottom: 70 }) });
   function accentForeground(value) {
     const match = /^#([0-9a-f]{6})$/i.exec(String(value || ""));
     if (!match) return "#ffffff";
@@ -399,7 +400,7 @@
     const moveOverlay = doc.createElement("div");
     moveOverlay.className = "sc-cc-move-overlay";
     moveOverlay.hidden = true;
-    moveOverlay.innerHTML = '<button type="button" class="sc-cc-move-handle" aria-label="Drag Assignmark controls">Move controls</button><button type="button" class="sc-cc-lock">Lock position</button>';
+    moveOverlay.innerHTML = '<button type="button" class="sc-cc-move-handle" aria-label="Drag Assignmark controls">Drag rail</button><button type="button" class="sc-cc-lock">Done</button>';
     const moveHandle = moveOverlay.querySelector(".sc-cc-move-handle");
     const lockPosition = moveOverlay.querySelector(".sc-cc-lock");
     hideDone.title = "Hide completed items from this calendar view.";
@@ -412,36 +413,13 @@
     let moveMode = false;
     let position = { right: 12, bottom: 70 };
     let dragStart = null;
-    const normalActionAllowed = () => !moveMode;
-    hideDone.addEventListener("click", (event) => {
-      if (!normalActionAllowed()) {
-        event.preventDefault();
-        return;
-      }
+    hideDone.addEventListener("click", () => {
       const nextFilter = currentFilter === "pending" ? "all" : currentFilter === "done" ? "all" : "pending";
       void callbacks.onFilterChange?.(nextFilter);
     });
-    fadeDone.addEventListener("click", (event) => {
-      if (!normalActionAllowed()) {
-        event.preventDefault();
-        return;
-      }
-      callbacks.onDimChange?.();
-    });
-    resetView.addEventListener("click", (event) => {
-      if (!normalActionAllowed()) {
-        event.preventDefault();
-        return;
-      }
-      callbacks.onClearView?.();
-    });
-    undo.addEventListener("click", (event) => {
-      if (!normalActionAllowed()) {
-        event.preventDefault();
-        return;
-      }
-      callbacks.onUndo?.();
-    });
+    fadeDone.addEventListener("click", () => callbacks.onDimChange?.());
+    resetView.addEventListener("click", () => callbacks.onClearView?.());
+    undo.addEventListener("click", () => callbacks.onUndo?.());
     lockPosition.addEventListener("click", () => callbacks.onLockPosition?.());
     const applyPosition = () => {
       const rect = container.getBoundingClientRect();
@@ -450,13 +428,17 @@
       container.style.setProperty("--sc-control-right", `${position.right}px`);
       container.style.setProperty("--sc-control-bottom", `${position.bottom}px`);
     };
-    moveHandle.addEventListener("pointerdown", (event) => {
+    container.addEventListener("pointerdown", (event) => {
       if (!moveMode) return;
+      if (event.target.closest?.(".sc-icon-btn, .sc-cc-lock")) return;
       event.preventDefault();
-      moveHandle.setPointerCapture?.(event.pointerId);
+      try {
+        container.setPointerCapture?.(event.pointerId);
+      } catch {
+      }
       dragStart = { id: event.pointerId, x: event.clientX, y: event.clientY, right: position.right, bottom: position.bottom };
     });
-    moveHandle.addEventListener("pointermove", (event) => {
+    container.addEventListener("pointermove", (event) => {
       if (!dragStart || dragStart.id !== event.pointerId) return;
       position.right = dragStart.right - (event.clientX - dragStart.x);
       position.bottom = dragStart.bottom - (event.clientY - dragStart.y);
@@ -467,8 +449,8 @@
       dragStart = null;
       callbacks.onPositionChange?.({ ...position });
     };
-    moveHandle.addEventListener("pointerup", finishDrag);
-    moveHandle.addEventListener("pointercancel", finishDrag);
+    container.addEventListener("pointerup", finishDrag);
+    container.addEventListener("pointercancel", finishDrag);
     moveHandle.addEventListener("keydown", (event) => {
       if (!moveMode) return;
       const delta = event.shiftKey ? 32 : 8;
@@ -484,7 +466,7 @@
     function showUndo(show) {
       undo.hidden = !show || !showResetView;
     }
-    function render2({ filter, dim, total, completed, accentColor, controlScale = 100, showHideDone = true, showFadeDone = true, showResetView: nextShowResetView = true, moveMode: nextMoveMode = false, controlPosition = {}, resetPending = false }) {
+    function render2({ filter, dim, total, completed, accentColor, controlScale = 100, showHideDone = true, showFadeDone = true, showResetView: nextShowResetView = true, moveMode: nextMoveMode = false, controlDock = "custom", controlPosition = {}, resetPending = false }) {
       currentFilter = normalizeFilter(filter);
       showResetView = nextShowResetView !== false;
       moveMode = nextMoveMode === true;
@@ -492,6 +474,15 @@
         right: Number.isFinite(Number(controlPosition.right)) ? Math.max(0, Number(controlPosition.right)) : position.right,
         bottom: Number.isFinite(Number(controlPosition.bottom)) ? Math.max(0, Number(controlPosition.bottom)) : position.bottom
       };
+      const rect = container.getBoundingClientRect();
+      if (controlDock !== "custom") {
+        const left = controlDock.endsWith("left");
+        const top = controlDock.startsWith("top");
+        position = {
+          right: left ? Math.max(12, doc.defaultView.innerWidth - rect.width - 12) : 12,
+          bottom: top ? Math.max(12, doc.defaultView.innerHeight - rect.height - 12) : 12
+        };
+      }
       const pendingOnly = currentFilter === "pending";
       const doneOnly = currentFilter === "done";
       hideDone.setAttribute("aria-pressed", String(pendingOnly));
@@ -515,12 +506,11 @@
       resetView.setAttribute("aria-busy", String(Boolean(resetPending)));
       resetView.title = completed === 0 ? "No completed items in this calendar view." : "Remove checkmarks only from completed items visible in this calendar view.";
       resetView.setAttribute("aria-label", completed === 0 ? "Reset current view unavailable because no visible items are completed" : `Reset ${completed} completed item${completed === 1 ? "" : "s"} in this calendar view`);
-      hideDone.disabled = moveMode;
-      fadeDone.disabled = moveMode;
-      resetView.disabled = moveMode || resetView.disabled;
-      undo.disabled = moveMode;
+      hideDone.disabled = false;
+      fadeDone.disabled = false;
+      undo.disabled = false;
       for (const button of [hideDone, fadeDone, resetView, undo]) {
-        button.setAttribute("aria-disabled", String(moveMode));
+        button.setAttribute("aria-disabled", String(button.disabled));
       }
       hideDone.hidden = showHideDone === false;
       fadeDone.hidden = showFadeDone === false;
@@ -585,6 +575,87 @@
     };
   }
 
+  // src/runtime-context.js
+  var INVALIDATED_CONTEXT_PATTERN = /extension context invalidated/i;
+  function isExtensionContextInvalidated(error, runtimeId) {
+    if (!runtimeId) return true;
+    const message = typeof error === "string" ? error : error?.message;
+    return INVALIDATED_CONTEXT_PATTERN.test(String(message || ""));
+  }
+
+  // src/content-lifecycle.js
+  function safely(cleanup) {
+    try {
+      cleanup();
+    } catch {
+    }
+  }
+  function createContentLifecycle({
+    clearInterval: clearInterval2,
+    removeStorageListener = () => {
+    },
+    removeVisibilityListener = () => {
+    },
+    removeFocusListener = () => {
+    }
+  }) {
+    let invalidated = false;
+    let scanTimerId = null;
+    let mutationObserver = null;
+    let scanQueued = false;
+    return {
+      isInvalidated() {
+        return invalidated;
+      },
+      trackTimer(timerId) {
+        if (invalidated) {
+          safely(() => clearInterval2(timerId));
+          return false;
+        }
+        scanTimerId = timerId;
+        return true;
+      },
+      trackObserver(observer) {
+        if (invalidated) {
+          safely(() => observer?.disconnect());
+          return false;
+        }
+        mutationObserver = observer;
+        return true;
+      },
+      queueScan() {
+        if (invalidated || scanQueued) return false;
+        scanQueued = true;
+        return true;
+      },
+      takeQueuedScan() {
+        if (invalidated || !scanQueued) return false;
+        scanQueued = false;
+        return true;
+      },
+      stop() {
+        if (invalidated) return;
+        invalidated = true;
+        scanQueued = false;
+        if (scanTimerId !== null) safely(() => clearInterval2(scanTimerId));
+        scanTimerId = null;
+        safely(() => mutationObserver?.disconnect());
+        mutationObserver = null;
+        safely(removeStorageListener);
+        safely(removeVisibilityListener);
+        safely(removeFocusListener);
+      },
+      inspect() {
+        return {
+          invalidated,
+          hasTimer: scanTimerId !== null,
+          hasObserver: mutationObserver !== null,
+          scanQueued
+        };
+      }
+    };
+  }
+
   // src/content.js
   var POLL_MS = 3e3;
   var LEGACY_KEYS2 = {
@@ -592,26 +663,45 @@
     settings: "sc_cal_checkbox_settings_calendar_only",
     idMap: "sc_cal_idmap_calendar_only_v2"
   };
-  var store = new StorageClient((message) => chrome.runtime.sendMessage(message));
+  var store = new StorageClient(sendStorageMessage);
   var adapter = new CalendarAdapter(document);
   var registry = new RenderedItemRegistry();
   var controlCenter = null;
   var undoSnapshot = null;
   var viewResetPending = false;
-  var scanQueued = false;
   var scanRunning = false;
-  var contextInvalidated = false;
-  function extensionContextIsValid() {
-    return Boolean(chrome.runtime?.id);
+  var lifecycle = createContentLifecycle({
+    clearInterval,
+    removeStorageListener: () => chrome.storage?.onChanged?.removeListener?.(handleStorageChange),
+    removeVisibilityListener: () => document.removeEventListener("visibilitychange", handleVisibilityChange),
+    removeFocusListener: () => window.removeEventListener("focus", scheduleScan)
+  });
+  async function sendStorageMessage(message) {
+    if (lifecycle.isInvalidated() || !chrome.runtime?.id) {
+      stopBackgroundWork();
+      throw new Error("Extension context invalidated.");
+    }
+    try {
+      return await chrome.runtime.sendMessage(message);
+    } catch (error) {
+      if (isExtensionContextInvalidated(error, chrome.runtime?.id)) stopBackgroundWork();
+      throw error;
+    }
   }
-  var scanTimerId = null;
+  function handleStorageChange(changes, areaName) {
+    if (areaName === "local" && changes[DATA_KEY]) scheduleScan();
+  }
+  function handleVisibilityChange() {
+    if (!document.hidden) scheduleScan();
+  }
   function stopBackgroundWork() {
-    contextInvalidated = true;
-    if (scanTimerId !== null) clearInterval(scanTimerId);
-    scanTimerId = null;
+    lifecycle.stop();
   }
   function reportError(error, context) {
-    if (contextInvalidated || !extensionContextIsValid()) return;
+    if (lifecycle.isInvalidated() || isExtensionContextInvalidated(error, chrome.runtime?.id)) {
+      stopBackgroundWork();
+      return;
+    }
     console.error(`[Assignmark] ${context}`, error);
     let notice = document.querySelector(".sc-cal-error");
     if (!notice) {
@@ -760,7 +850,7 @@
       },
       onPositionChange: async (controlPosition) => {
         try {
-          await store.updateSettings({ controlPosition });
+          await store.updateSettings({ controlPosition, controlDock: "custom" });
           render();
         } catch (error) {
           reportError(error, "Saving control position failed.");
@@ -790,12 +880,12 @@
     document.body.appendChild(controlCenter.element);
   }
   async function scan() {
-    if (contextInvalidated || !extensionContextIsValid()) {
+    if (lifecycle.isInvalidated() || !chrome.runtime?.id) {
       stopBackgroundWork();
       return;
     }
     if (scanRunning) {
-      scanQueued = true;
+      lifecycle.queueScan();
       return;
     }
     scanRunning = true;
@@ -813,24 +903,19 @@
       registry.replace(entries);
       render();
     } catch (error) {
-      if (!extensionContextIsValid()) {
+      if (isExtensionContextInvalidated(error, chrome.runtime?.id)) {
         stopBackgroundWork();
       } else reportError(error, "Scanning calendar items failed.");
     } finally {
       scanRunning = false;
-      if (scanQueued && !contextInvalidated) {
-        scanQueued = false;
-        queueMicrotask(scan);
-      } else if (contextInvalidated) scanQueued = false;
+      if (lifecycle.takeQueuedScan()) queueMicrotask(scan);
     }
   }
   function scheduleScan() {
-    if (contextInvalidated) return;
-    if (scanQueued) return;
-    scanQueued = true;
+    if (lifecycle.isInvalidated()) return;
+    if (!lifecycle.queueScan()) return;
     queueMicrotask(() => {
-      scanQueued = false;
-      void scan();
+      if (lifecycle.takeQueuedScan()) void scan();
     });
   }
   async function init() {
@@ -841,17 +926,15 @@
       return;
     }
     await scan();
-    const observer = new MutationObserver((mutations) => {
+    if (lifecycle.isInvalidated()) return;
+    const mutationObserver = new MutationObserver((mutations) => {
       if (mutations.some((mutation) => mutation.addedNodes.length > 0)) scheduleScan();
     });
-    observer.observe(document.body, { childList: true, subtree: true });
-    chrome.storage.onChanged.addListener((changes, areaName) => {
-      if (areaName === "local" && changes[DATA_KEY]) scheduleScan();
-    });
-    scanTimerId = setInterval(scheduleScan, POLL_MS);
-    document.addEventListener("visibilitychange", () => {
-      if (!document.hidden) scheduleScan();
-    });
+    if (!lifecycle.trackObserver(mutationObserver)) return;
+    mutationObserver.observe(document.body, { childList: true, subtree: true });
+    chrome.storage.onChanged.addListener(handleStorageChange);
+    lifecycle.trackTimer(setInterval(scheduleScan, POLL_MS));
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("focus", scheduleScan);
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => void init(), { once: true });

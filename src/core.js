@@ -2,7 +2,8 @@ export const DATA_KEY = 'scCalendarData';
 export const DATA_VERSION = 4;
 export const FILTER_MODES = Object.freeze(['all', 'pending', 'done']);
 export const CONTROL_SCALE_RANGE = Object.freeze({ min: 80, max: 120, step: 5 });
-export const DEFAULT_SETTINGS = Object.freeze({ hide: false, dim: true, filter: 'all', accentColor: '#0a84ff', controlScale: 100, showHideDone: true, showFadeDone: true, showResetView: true, moveMode: false, controlPosition: Object.freeze({ right: 12, bottom: 70 }) });
+export const CONTROL_DOCKS = Object.freeze(['top-left', 'top-right', 'bottom-left', 'bottom-right', 'custom']);
+export const DEFAULT_SETTINGS = Object.freeze({ hide: false, dim: true, filter: 'all', accentColor: '#0a84ff', controlScale: 100, showHideDone: true, showFadeDone: true, showResetView: true, moveMode: false, controlDock: 'bottom-right', controlPosition: Object.freeze({ right: 12, bottom: 70 }) });
 
 export function accentForeground(value) {
   const match = /^#([0-9a-f]{6})$/i.exec(String(value || ''));
@@ -238,6 +239,9 @@ function normalizeSettings(value) {
     ? Math.min(CONTROL_SCALE_RANGE.max, Math.max(CONTROL_SCALE_RANGE.min, Math.round(Number(settings.controlScale) / CONTROL_SCALE_RANGE.step) * CONTROL_SCALE_RANGE.step))
     : DEFAULT_SETTINGS.controlScale;
   const rawPosition = cleanRecord(settings.controlPosition);
+  const controlDock = CONTROL_DOCKS.includes(settings.controlDock)
+    ? settings.controlDock
+    : DEFAULT_SETTINGS.controlDock;
   const controlPosition = {
     right: Number.isFinite(Number(rawPosition.right)) ? Math.max(0, Math.round(Number(rawPosition.right))) : DEFAULT_SETTINGS.controlPosition.right,
     bottom: Number.isFinite(Number(rawPosition.bottom)) ? Math.max(0, Math.round(Number(rawPosition.bottom))) : DEFAULT_SETTINGS.controlPosition.bottom
@@ -252,6 +256,7 @@ function normalizeSettings(value) {
     showFadeDone: settings.showFadeDone !== false,
     showResetView: settings.showResetView !== false,
     moveMode: settings.moveMode === true,
+    controlDock,
     controlPosition
   };
 }

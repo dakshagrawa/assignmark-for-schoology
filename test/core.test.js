@@ -122,6 +122,16 @@ test('custom control settings default safely and clamp percentage/position value
   assert.deepEqual(store.getSettings().controlPosition, { right: 0, bottom: 123 });
 });
 
+test('rail dock presets default safely and reject unknown positions', async () => {
+  const store = new ExtensionStore(new MemoryStorageArea());
+  await store.initialize();
+  assert.equal(store.getSettings().controlDock, 'bottom-right');
+  await store.updateSettings({ controlDock: 'top-left' });
+  assert.equal(store.getSettings().controlDock, 'top-left');
+  await store.updateSettings({ controlDock: 'somewhere' });
+  assert.equal(store.getSettings().controlDock, 'bottom-right');
+});
+
 test('resetSettings restores preferences without deleting saved checkoffs', async () => {
   const store = new ExtensionStore(new MemoryStorageArea());
   await store.initialize();

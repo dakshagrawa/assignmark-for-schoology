@@ -17,7 +17,7 @@ export function createSettingsPopup(doc, callbacks = {}) {
       <img src="../icons/icon48.png" width="38" height="38" alt="">
       <div>
         <h1>Assignmark</h1>
-        <p>Calendar checkoffs</p>
+        <p>Check things off without losing your place.</p>
       </div>
     </header>
 
@@ -38,8 +38,8 @@ export function createSettingsPopup(doc, callbacks = {}) {
     <section class="settings-card" data-section="appearance">
       <div class="section-heading">
         <div>
-          <h2>Appearance</h2>
-          <p>Keep the calendar calm and personal.</p>
+          <h2>Color & completion</h2>
+          <p>Make finished work quieter and choose your color.</p>
         </div>
       </div>
 
@@ -65,14 +65,31 @@ export function createSettingsPopup(doc, callbacks = {}) {
       <div class="swatches" role="group" aria-label="Accent color presets">
         ${ACCENT_SWATCHES.map((color) => `<button type="button" data-accent="${color}" aria-label="Use accent color ${color}" style="--swatch:${color}"></button>`).join('')}
       </div>
+    </section>
 
+    <section class="settings-card" data-section="rail">
+      <div class="section-heading">
+        <div>
+          <h2>Calendar rail</h2>
+          <p>Keep the tools you use and put them where they stay out of the way.</p>
+        </div>
+      </div>
       <div class="control-preferences" data-role="control-preferences">
-        <strong>Calendar controls</strong>
-        <label class="visibility-option"><input type="checkbox" data-control-visibility="hideDone"> <span>Show Hide done</span></label>
-        <label class="visibility-option"><input type="checkbox" data-control-visibility="fadeDone"> <span>Show Fade done</span></label>
-        <label class="visibility-option"><input type="checkbox" data-control-visibility="resetView"> <span>Show Reset view</span></label>
+        <div class="preference-heading"><strong>Buttons</strong><small>Turn off anything you do not use.</small></div>
+        <label class="visibility-option"><input type="checkbox" data-control-visibility="hideDone"> <span>Hide done</span></label>
+        <label class="visibility-option"><input type="checkbox" data-control-visibility="fadeDone"> <span>Fade done</span></label>
+        <label class="visibility-option"><input type="checkbox" data-control-visibility="resetView"> <span>Reset view</span></label>
         <label class="size-setting" for="control-scale"><span>Button size <output data-role="control-scale-value">100%</output></span><input id="control-scale" data-role="control-scale" type="range" min="80" max="120" step="5" value="100"></label>
-        <button type="button" class="secondary-button" data-role="move-controls">Move controls</button>
+        <div class="dock-setting">
+          <span>Position</span>
+          <div class="dock-grid" role="group" aria-label="Calendar rail position">
+            <button type="button" data-control-dock="top-left" aria-label="Top left" aria-pressed="false"><span aria-hidden="true">↖</span>Top left</button>
+            <button type="button" data-control-dock="top-right" aria-label="Top right" aria-pressed="false"><span aria-hidden="true">↗</span>Top right</button>
+            <button type="button" data-control-dock="bottom-left" aria-label="Bottom left" aria-pressed="false"><span aria-hidden="true">↙</span>Bottom left</button>
+            <button type="button" data-control-dock="bottom-right" aria-label="Bottom right" aria-pressed="false"><span aria-hidden="true">↘</span>Bottom right</button>
+          </div>
+        </div>
+        <button type="button" class="secondary-button move-button" data-role="move-controls">Drag to a custom spot</button>
       </div>
     </section>
 
@@ -106,6 +123,7 @@ export function createSettingsPopup(doc, callbacks = {}) {
   const moveControls = shell.querySelector('[data-role="move-controls"]');
   const controlScale = shell.querySelector('[data-role="control-scale"]');
   const controlScaleValue = shell.querySelector('[data-role="control-scale-value"]');
+  const dockButtons = [...shell.querySelectorAll('[data-control-dock]')];
   const status = shell.querySelector('[data-role="status"]');
   let currentDim = true;
 
@@ -124,6 +142,9 @@ export function createSettingsPopup(doc, callbacks = {}) {
     controlScaleValue.textContent = `${controlScale.value}%`;
   });
   controlScale.addEventListener('change', () => callbacks.onControlScaleChange?.(Number(controlScale.value)));
+  for (const button of dockButtons) {
+    button.addEventListener('click', () => void callbacks.onControlDockChange?.(button.dataset.controlDock));
+  }
   moveControls.addEventListener('click', () => void callbacks.onMoveControls?.());
   resetSettings.addEventListener('click', () => void callbacks.onResetSettings?.());
   resetAll.addEventListener('click', () => void callbacks.onResetAll?.());
@@ -152,7 +173,8 @@ export function createSettingsPopup(doc, callbacks = {}) {
     for (const input of shell.querySelectorAll('[data-control-visibility]')) input.checked = visibility[input.dataset.controlVisibility];
     controlScale.value = String(Math.min(120, Math.max(80, Number(settings.controlScale) || 100)));
     controlScaleValue.textContent = `${controlScale.value}%`;
-    moveControls.textContent = settings.moveMode ? 'Moving controls…' : 'Move controls';
+    for (const button of dockButtons) button.setAttribute('aria-pressed', String(button.dataset.controlDock === settings.controlDock));
+    moveControls.textContent = settings.moveMode ? 'Drag the rail on Schoology' : 'Drag to a custom spot';
     moveControls.disabled = Boolean(settings.moveMode);
 
     const count = Math.max(0, Number(checkedCount) || 0);
