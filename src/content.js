@@ -3,6 +3,8 @@ import { StorageClient } from './storage-client.js';
 import { CalendarAdapter, RenderedItemRegistry } from './calendar-adapter.js';
 import { appearanceForItem, createControlCenter, summarizeRenderedItems } from './control-center.js';
 import { createResetOperation } from './reset-action.js';
+import { isExtensionContextInvalidated } from './runtime-context.js';
+import { createContentLifecycle } from './content-lifecycle.js';
 
 const POLL_MS = 3000;
 const LEGACY_KEYS = {
@@ -10,30 +12,50 @@ const LEGACY_KEYS = {
   settings: 'sc_cal_checkbox_settings_calendar_only',
   idMap: 'sc_cal_idmap_calendar_only_v2'
 };
-const store = new StorageClient((message) => chrome.runtime.sendMessage(message));
+const store = new StorageClient(sendStorageMessage);
 const adapter = new CalendarAdapter(document);
 const registry = new RenderedItemRegistry();
 let controlCenter = null;
 let undoSnapshot = null;
 let viewResetPending = false;
-let scanQueued = false;
 let scanRunning = false;
-let contextInvalidated = false;
+const lifecycle = createContentLifecycle({
+  clearInterval,
+  removeStorageListener: () => chrome.storage?.onChanged?.removeListener?.(handleStorageChange),
+  removeVisibilityListener: () => document.removeEventListener('visibilitychange', handleVisibilityChange),
+  removeFocusListener: () => window.removeEventListener('focus', scheduleScan)
+});
 
-function extensionContextIsValid() {
-  return Boolean(chrome.runtime?.id);
+async function sendStorageMessage(message) {
+  if (lifecycle.isInvalidated() || !chrome.runtime?.id) {
+    stopBackgroundWork();
+    throw new Error('Extension context invalidated.');
+  }
+  try {
+    return await chrome.runtime.sendMessage(message);
+  } catch (error) {
+    if (isExtensionContextInvalidated(error, chrome.runtime?.id)) stopBackgroundWork();
+    throw error;
+  }
 }
 
-let scanTimerId = null;
+function handleStorageChange(changes, areaName) {
+  if (areaName === 'local' && changes[DATA_KEY]) scheduleScan();
+}
+
+function handleVisibilityChange() {
+  if (!document.hidden) scheduleScan();
+}
 
 function stopBackgroundWork() {
-  contextInvalidated = true;
-  if (scanTimerId !== null) clearInterval(scanTimerId);
-  scanTimerId = null;
+  lifecycle.stop();
 }
 
 function reportError(error, context) {
-  if (contextInvalidated || !extensionContextIsValid()) return;
+  if (lifecycle.isInvalidated() || isExtensionContextInvalidated(error, chrome.runtime?.id)) {
+    stopBackgroundWork();
+    return;
+  }
   console.error(`[Assignmark] ${context}`, error);
   let notice = document.querySelector('.sc-cal-error');
   if (!notice) {
@@ -177,7 +199,7 @@ function ensureControlCenter() {
       catch (error) { reportError(error, 'Saving Fade completed setting failed.'); }
     },
     onPositionChange: async (controlPosition) => {
-      try { await store.updateSettings({ controlPosition }); render(); }
+      try { await store.updateSettings({ controlPosition, controlDock: 'custom' }); render(); }
       catch (error) { reportError(error, 'Saving control position failed.'); }
     },
     onLockPosition: async () => {
@@ -196,8 +218,8 @@ function ensureControlCenter() {
 }
 
 async function scan() {
-  if (contextInvalidated || !extensionContextIsValid()) { stopBackgroundWork(); return; }
-  if (scanRunning) { scanQueued = true; return; }
+  if (lifecycle.isInvalidated() || !chrome.runtime?.id) { stopBackgroundWork(); return; }
+  if (scanRunning) { lifecycle.queueScan(); return; }
   scanRunning = true;
   try {
     ensureControlCenter();
@@ -213,35 +235,35 @@ async function scan() {
     registry.replace(entries);
     render();
   } catch (error) {
-    if (!extensionContextIsValid()) { stopBackgroundWork(); }
+    if (isExtensionContextInvalidated(error, chrome.runtime?.id)) { stopBackgroundWork(); }
     else reportError(error, 'Scanning calendar items failed.');
   } finally {
     scanRunning = false;
-    if (scanQueued && !contextInvalidated) { scanQueued = false; queueMicrotask(scan); }
-    else if (contextInvalidated) scanQueued = false;
+    if (lifecycle.takeQueuedScan()) queueMicrotask(scan);
   }
 }
 
 function scheduleScan() {
-  if (contextInvalidated) return;
-  if (scanQueued) return;
-  scanQueued = true;
-  queueMicrotask(() => { scanQueued = false; void scan(); });
+  if (lifecycle.isInvalidated()) return;
+  if (!lifecycle.queueScan()) return;
+  queueMicrotask(() => {
+    if (lifecycle.takeQueuedScan()) void scan();
+  });
 }
 
 async function init() {
   try { await store.initialize(readLegacyData()); }
   catch (error) { reportError(error, 'Extension storage initialization failed.'); return; }
   await scan();
-  const observer = new MutationObserver((mutations) => {
+  if (lifecycle.isInvalidated()) return;
+  const mutationObserver = new MutationObserver((mutations) => {
     if (mutations.some((mutation) => mutation.addedNodes.length > 0)) scheduleScan();
   });
-  observer.observe(document.body, { childList: true, subtree: true });
-  chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName === 'local' && changes[DATA_KEY]) scheduleScan();
-  });
-  scanTimerId = setInterval(scheduleScan, POLL_MS);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) scheduleScan(); });
+  if (!lifecycle.trackObserver(mutationObserver)) return;
+  mutationObserver.observe(document.body, { childList: true, subtree: true });
+  chrome.storage.onChanged.addListener(handleStorageChange);
+  lifecycle.trackTimer(setInterval(scheduleScan, POLL_MS));
+  document.addEventListener('visibilitychange', handleVisibilityChange);
   window.addEventListener('focus', scheduleScan);
 }
 

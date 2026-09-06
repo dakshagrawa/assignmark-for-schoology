@@ -42,17 +42,20 @@ test('content entrypoint removes the calendar-only control center when the calen
   assert.match(source, /if \(!adapter\.isPresent\(\)\) \{\s*controlCenter\?\.destroy\(\);\s*controlCenter = null;\s*return;\s*\}/);
 });
 
-test('invalidated extension context stops background work instead of surfacing repeated errors', () => {
-  assert.match(source, /function extensionContextIsValid\(\)/);
-  assert.match(source, /chrome\.runtime\?\.id/);
-  assert.match(source, /if \(contextInvalidated \|\| !extensionContextIsValid\(\)\) \{ stopBackgroundWork\(\); return; \}/);
-  assert.match(source, /scanTimerId = setInterval\(scheduleScan, POLL_MS\);/);
-  assert.match(source, /if \(scanTimerId !== null\) clearInterval\(scanTimerId\);/);
-  assert.match(source, /if \(contextInvalidated\) return;\s*if \(scanQueued\) return;/);
-  assert.match(source, /if \(!extensionContextIsValid\(\)\) \{ stopBackgroundWork\(\); \}/);
+test('invalidated extension context routes all lifecycle work through the executable controller', () => {
+  assert.match(source, /import \{ isExtensionContextInvalidated \} from '\.\/runtime-context\.js'/);
+  assert.match(source, /import \{ createContentLifecycle \} from '\.\/content-lifecycle\.js'/);
+  assert.match(source, /const lifecycle = createContentLifecycle\(/);
+  assert.match(source, /async function sendStorageMessage\(message\)/);
+  assert.match(source, /await chrome\.runtime\.sendMessage\(message\)/);
+  assert.match(source, /if \(isExtensionContextInvalidated\(error, chrome\.runtime\?\.id\)\) stopBackgroundWork\(\);/);
+  assert.match(source, /if \(lifecycle\.isInvalidated\(\)\) return;\s*const mutationObserver/);
+  assert.match(source, /if \(!lifecycle\.trackObserver\(mutationObserver\)\) return;/);
+  assert.match(source, /lifecycle\.trackTimer\(setInterval\(scheduleScan, POLL_MS\)\)/);
 });
 
-test('error reporting stays silent once the extension context is invalidated', () => {
+test('error reporting stays silent for message-based invalidation but reports genuine failures', () => {
   const reportRule = source.match(/function reportError\(error, context\) \{([\s\S]*?)\n\}/)?.[1] || '';
-  assert.match(reportRule, /if \(contextInvalidated \|\| !extensionContextIsValid\(\)\) return;/);
+  assert.match(reportRule, /isExtensionContextInvalidated\(error, chrome\.runtime\?\.id\)/);
+  assert.match(reportRule, /console\.error\(`/);
 });

@@ -129,7 +129,7 @@ export function createControlCenter(doc, callbacks = {}) {
   const moveOverlay = doc.createElement('div');
   moveOverlay.className = 'sc-cc-move-overlay';
   moveOverlay.hidden = true;
-  moveOverlay.innerHTML = '<button type="button" class="sc-cc-move-handle" aria-label="Drag Assignmark controls">Move controls</button><button type="button" class="sc-cc-lock">Lock position</button>';
+  moveOverlay.innerHTML = '<button type="button" class="sc-cc-move-handle" aria-label="Drag Assignmark controls">Drag rail</button><button type="button" class="sc-cc-lock">Done</button>';
   const moveHandle = moveOverlay.querySelector('.sc-cc-move-handle');
   const lockPosition = moveOverlay.querySelector('.sc-cc-lock');
 
@@ -146,24 +146,13 @@ export function createControlCenter(doc, callbacks = {}) {
   let position = { right: 12, bottom: 70 };
   let dragStart = null;
 
-  const normalActionAllowed = () => !moveMode;
-  hideDone.addEventListener('click', (event) => {
-    if (!normalActionAllowed()) { event.preventDefault(); return; }
+  hideDone.addEventListener('click', () => {
     const nextFilter = currentFilter === 'pending' ? 'all' : currentFilter === 'done' ? 'all' : 'pending';
     void callbacks.onFilterChange?.(nextFilter);
   });
-  fadeDone.addEventListener('click', (event) => {
-    if (!normalActionAllowed()) { event.preventDefault(); return; }
-    callbacks.onDimChange?.();
-  });
-  resetView.addEventListener('click', (event) => {
-    if (!normalActionAllowed()) { event.preventDefault(); return; }
-    callbacks.onClearView?.();
-  });
-  undo.addEventListener('click', (event) => {
-    if (!normalActionAllowed()) { event.preventDefault(); return; }
-    callbacks.onUndo?.();
-  });
+  fadeDone.addEventListener('click', () => callbacks.onDimChange?.());
+  resetView.addEventListener('click', () => callbacks.onClearView?.());
+  undo.addEventListener('click', () => callbacks.onUndo?.());
   lockPosition.addEventListener('click', () => callbacks.onLockPosition?.());
   const applyPosition = () => {
     const rect = container.getBoundingClientRect();
@@ -172,13 +161,14 @@ export function createControlCenter(doc, callbacks = {}) {
     container.style.setProperty('--sc-control-right', `${position.right}px`);
     container.style.setProperty('--sc-control-bottom', `${position.bottom}px`);
   };
-  moveHandle.addEventListener('pointerdown', (event) => {
+  container.addEventListener('pointerdown', (event) => {
     if (!moveMode) return;
+    if (event.target.closest?.('.sc-icon-btn, .sc-cc-lock')) return;
     event.preventDefault();
-    moveHandle.setPointerCapture?.(event.pointerId);
+    try { container.setPointerCapture?.(event.pointerId); } catch { /* Dragging still works without capture. */ }
     dragStart = { id: event.pointerId, x: event.clientX, y: event.clientY, right: position.right, bottom: position.bottom };
   });
-  moveHandle.addEventListener('pointermove', (event) => {
+  container.addEventListener('pointermove', (event) => {
     if (!dragStart || dragStart.id !== event.pointerId) return;
     position.right = dragStart.right - (event.clientX - dragStart.x);
     position.bottom = dragStart.bottom - (event.clientY - dragStart.y);
@@ -189,8 +179,8 @@ export function createControlCenter(doc, callbacks = {}) {
     dragStart = null;
     callbacks.onPositionChange?.({ ...position });
   };
-  moveHandle.addEventListener('pointerup', finishDrag);
-  moveHandle.addEventListener('pointercancel', finishDrag);
+  container.addEventListener('pointerup', finishDrag);
+  container.addEventListener('pointercancel', finishDrag);
   moveHandle.addEventListener('keydown', (event) => {
     if (!moveMode) return;
     const delta = event.shiftKey ? 32 : 8;
@@ -208,7 +198,7 @@ export function createControlCenter(doc, callbacks = {}) {
     undo.hidden = !show || !showResetView;
   }
 
-  function render({ filter, dim, total, completed, accentColor, controlScale = 100, showHideDone = true, showFadeDone = true, showResetView: nextShowResetView = true, moveMode: nextMoveMode = false, controlPosition = {}, resetPending = false }) {
+  function render({ filter, dim, total, completed, accentColor, controlScale = 100, showHideDone = true, showFadeDone = true, showResetView: nextShowResetView = true, moveMode: nextMoveMode = false, controlDock = 'custom', controlPosition = {}, resetPending = false }) {
     currentFilter = normalizeFilter(filter);
     showResetView = nextShowResetView !== false;
     moveMode = nextMoveMode === true;
@@ -216,6 +206,15 @@ export function createControlCenter(doc, callbacks = {}) {
       right: Number.isFinite(Number(controlPosition.right)) ? Math.max(0, Number(controlPosition.right)) : position.right,
       bottom: Number.isFinite(Number(controlPosition.bottom)) ? Math.max(0, Number(controlPosition.bottom)) : position.bottom
     };
+    const rect = container.getBoundingClientRect();
+    if (controlDock !== 'custom') {
+      const left = controlDock.endsWith('left');
+      const top = controlDock.startsWith('top');
+      position = {
+        right: left ? Math.max(12, doc.defaultView.innerWidth - rect.width - 12) : 12,
+        bottom: top ? Math.max(12, doc.defaultView.innerHeight - rect.height - 12) : 12
+      };
+    }
     const pendingOnly = currentFilter === 'pending';
     const doneOnly = currentFilter === 'done';
 
@@ -251,12 +250,11 @@ export function createControlCenter(doc, callbacks = {}) {
     resetView.setAttribute('aria-label', completed === 0
       ? 'Reset current view unavailable because no visible items are completed'
       : `Reset ${completed} completed item${completed === 1 ? '' : 's'} in this calendar view`);
-    hideDone.disabled = moveMode;
-    fadeDone.disabled = moveMode;
-    resetView.disabled = moveMode || resetView.disabled;
-    undo.disabled = moveMode;
+    hideDone.disabled = false;
+    fadeDone.disabled = false;
+    undo.disabled = false;
     for (const button of [hideDone, fadeDone, resetView, undo]) {
-      button.setAttribute('aria-disabled', String(moveMode));
+      button.setAttribute('aria-disabled', String(button.disabled));
     }
     hideDone.hidden = showHideDone === false;
     fadeDone.hidden = showFadeDone === false;

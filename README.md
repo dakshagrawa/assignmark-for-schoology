@@ -1,6 +1,16 @@
 # Assignmark: Schoology Checkoffs
 
-Assignmark is a Manifest V3 browser extension for personal completion checkoffs in Schoology. Version 2.2 combines persistent calendar checkboxes with a compact v2.0-style action rail, an Apple-inspired extension settings popup, locally customizable accent colors, explicit reset scopes, one-level Undo, and cross-tab-safe local storage coordination at `https://fuhsd.schoology.com/*`.
+> **Unofficial local-only student project.** Assignmark is not affiliated with, endorsed by, or operated for Fremont Union High School District, PowerSchool, or Schoology.
+
+Assignmark is a Chrome Manifest V3 extension for **personal completion checkoffs** in the FUHSD Schoology calendar. It works after a student has already signed in through the normal Schoology experience and keeps its state in that student's local browser profile.
+
+| What it does | What it does not do |
+| --- | --- |
+| Adds personal checkboxes and local display controls to the calendar | Collect passwords, cookies, or Schoology API credentials |
+| Stores checkoffs and preferences in `chrome.storage.local` | Retrieve grades, submit work, or alter Schoology records |
+| Uses only the `storage` permission and `https://fuhsd.schoology.com/*` | Send analytics, telemetry, or calendar data to any server |
+
+**Reviewers:** Start with the [district review brief](docs/DISTRICT_REVIEW.md), [privacy statement](PRIVACY.md), and [OAuth boundary](docs/SCHOOLOGY_OAUTH.md). The current release is **2.2.4**; `npm run check` runs **108 automated tests** and produces the loadable package.
 
 ## Features
 
@@ -47,7 +57,10 @@ src/popup.html                Extension-toolbar settings popup shell
 src/popup.js                  Popup runtime and local Coloris initialization
 src/popup-ui.js               Tested settings UI component
 src/popup-controller.js       Serialized settings/reset coordination
-THIRD_PARTY_NOTICES.md        Bundled open-source component notices
+docs/SCHOOLOGY_OAUTH.md        OAuth guidance and the local-only integration boundary
+docs/DISTRICT_REVIEW.md        Technical and privacy briefing for district reviewers
+PRIVACY.md                     Public local-data handling statement
+THIRD_PARTY_NOTICES.md         Bundled open-source component notices
 icons/                        16/32/48/128 px extension icons
 scripts/build.mjs             Bundle, validate manifest, and create store ZIP
 test/core.test.js             Node/jsdom unit and regression tests
@@ -68,13 +81,13 @@ npm run build
 ```
 
 - **Ready-to-load Chrome folder:** `load-unpacked/` is committed to the repository so users can clone or download the source and load it immediately. Running `npm run build` refreshes this folder.
-- **Store ZIP:** `assignmark-for-schoology-2.2.3.zip`.
+- **Store ZIP:** `assignmark-for-schoology-2.2.4.zip`.
 
 `npm run build` creates:
 
 - `load-unpacked/` — ready to select with Chrome's **Load unpacked** button
 - `dist/release/` — identical packaged runtime directory used to create the store ZIP
-- `assignmark-for-schoology-2.2.3.zip` — uploadable Chrome Web Store package
+- `assignmark-for-schoology-2.2.4.zip` — uploadable Chrome Web Store package
 
 `npm run check` runs the complete test suite and production build.
 
