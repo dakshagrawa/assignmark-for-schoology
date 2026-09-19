@@ -192,11 +192,11 @@ function ensureControlCenter() {
   controlCenter = createControlCenter(document, {
     onFilterChange: async (filter) => {
       try { await store.updateSettings({ filter }); render(); }
-      catch (error) { reportError(error, 'Saving filter failed.'); }
+      catch (error) { reportError(error, 'Saving filter failed.'); throw error; }
     },
-    onDimChange: async () => {
-      try { await store.updateSettings({ dim: !store.getSettings().dim }); render(); }
-      catch (error) { reportError(error, 'Saving Fade completed setting failed.'); }
+    onDimChange: async (dim) => {
+      try { await store.updateSettings({ dim }); render(); }
+      catch (error) { reportError(error, 'Saving Fade completed setting failed.'); throw error; }
     },
     onPositionChange: async (controlPosition) => {
       try { await store.updateSettings({ controlPosition, controlDock: 'custom' }); render(); }

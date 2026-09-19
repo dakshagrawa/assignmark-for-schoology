@@ -27,11 +27,12 @@
 .sc-cc-move-overlay { position:absolute; right:calc(100% + 8px); left:auto; bottom:0; z-index:4; display:grid; gap:6px; box-sizing:border-box; width:min(108px,calc(100vw - 72px)); padding:7px; border:1px solid var(--sc-border); border-radius:10px; background:var(--sc-surface); box-shadow:0 8px 20px rgba(0,0,0,.14); }
 .sc-cc-move-overlay[hidden] { display:none !important; }
 .sc-cc-move-overlay button { min-height:30px; padding:0 8px; border:1px solid var(--sc-border); border-radius:7px; background:var(--sc-surface-hover); color:inherit; font:600 10px/1 system-ui,-apple-system,"SF Pro Text","Segoe UI",sans-serif; cursor:pointer; }
-.sc-cc-move-handle { touch-action:none; cursor:grab !important; }
+.sc-cc-move-handle { min-height:44px !important; touch-action:none; cursor:grab !important; }
 .sc-cc-move-handle:active { cursor:grabbing !important; }
 .sc-cc-move-overlay button:focus-visible { outline:3px solid #ffbf47; outline-offset:2px; }
-.sc-cc-moving { cursor:grab; touch-action:none; }
-.sc-cc-moving:active { cursor:grabbing; }
+.sc-cc-moving { cursor:default; }
+.sc-cc-moving .sc-cc-move-handle { cursor:grab; }
+.sc-cc-moving .sc-cc-move-handle:active { cursor:grabbing; }
 
 @media (max-width:390px) { .sc-cc { max-height:calc(100vh - 16px); } }
 @media (prefers-reduced-motion:reduce) { .sc-cc *, .sc-cal-left-checkbox { transition:none !important; animation:none !important; } }

@@ -67,6 +67,8 @@ const ICONS = Object.freeze({
   undo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 8 4 12l5 4v-3h5a5 5 0 0 1 5 5v1M4 12h10"/></svg>'
 });
 
+const DRAG_THRESHOLD_PX = 8;
+
 function makeButton(doc, { id, icon, label, role, pressed = null, primary = false }) {
   const button = doc.createElement('button');
   button.type = 'button';
@@ -140,20 +142,62 @@ export function createControlCenter(doc, callbacks = {}) {
 
   container.append(summary, hideDone, fadeDone, resetView, undo, moveOverlay);
 
-  let currentFilter = 'all';
+  let savedFilter = 'all';
+  let pendingFilter = null;
+  let filterRequestVersion = 0;
+  let savedDim = true;
+  let pendingDim = null;
+  let dimRequestVersion = 0;
   let showResetView = true;
   let moveMode = false;
   let position = { right: 12, bottom: 70 };
   let dragStart = null;
 
   hideDone.addEventListener('click', () => {
-    const nextFilter = currentFilter === 'pending' ? 'all' : currentFilter === 'done' ? 'all' : 'pending';
-    void callbacks.onFilterChange?.(nextFilter);
+    const effectiveFilter = pendingFilter ?? savedFilter;
+    const nextFilter = effectiveFilter === 'pending' || effectiveFilter === 'done' ? 'all' : 'pending';
+    const requestVersion = ++filterRequestVersion;
+    pendingFilter = nextFilter;
+    renderHideButton(nextFilter);
+    let filterSave;
+    try { filterSave = callbacks.onFilterChange?.(nextFilter); }
+    catch (error) { filterSave = Promise.reject(error); }
+    Promise.resolve(filterSave).then(() => {
+      if (requestVersion !== filterRequestVersion) return;
+      savedFilter = nextFilter;
+      pendingFilter = null;
+      renderHideButton(savedFilter);
+    }).catch(() => {
+      if (requestVersion !== filterRequestVersion) return;
+      pendingFilter = null;
+      renderHideButton(savedFilter);
+    });
   });
-  fadeDone.addEventListener('click', () => callbacks.onDimChange?.());
+  fadeDone.addEventListener('click', () => {
+    const nextDim = !(pendingDim ?? savedDim);
+    const requestVersion = ++dimRequestVersion;
+    pendingDim = nextDim;
+    renderFadeButton(nextDim);
+    let dimSave;
+    try { dimSave = callbacks.onDimChange?.(nextDim); }
+    catch (error) { dimSave = Promise.reject(error); }
+    Promise.resolve(dimSave).then(() => {
+      if (requestVersion !== dimRequestVersion) return;
+      savedDim = nextDim;
+      pendingDim = null;
+      renderFadeButton(savedDim);
+    }).catch(() => {
+      if (requestVersion !== dimRequestVersion) return;
+      pendingDim = null;
+      renderFadeButton(savedDim);
+    });
+  });
   resetView.addEventListener('click', () => callbacks.onClearView?.());
   undo.addEventListener('click', () => callbacks.onUndo?.());
   lockPosition.addEventListener('click', () => callbacks.onLockPosition?.());
+  for (const button of [hideDone, fadeDone, resetView, undo, lockPosition]) {
+    button.addEventListener('click', (event) => event.stopPropagation());
+  }
   const applyPosition = () => {
     const rect = container.getBoundingClientRect();
     position.right = Math.max(8, Math.min(position.right, Math.max(8, doc.defaultView.innerWidth - rect.width - 8)));
@@ -161,23 +205,30 @@ export function createControlCenter(doc, callbacks = {}) {
     container.style.setProperty('--sc-control-right', `${position.right}px`);
     container.style.setProperty('--sc-control-bottom', `${position.bottom}px`);
   };
-  container.addEventListener('pointerdown', (event) => {
+  const startDrag = (event) => {
     if (!moveMode) return;
-    if (event.target.closest?.('.sc-icon-btn, .sc-cc-lock')) return;
     event.preventDefault();
-    try { container.setPointerCapture?.(event.pointerId); } catch { /* Dragging still works without capture. */ }
-    dragStart = { id: event.pointerId, x: event.clientX, y: event.clientY, right: position.right, bottom: position.bottom };
-  });
+    try { moveHandle.setPointerCapture?.(event.pointerId); } catch { /* Dragging still works without capture. */ }
+    dragStart = { id: event.pointerId, x: event.clientX, y: event.clientY, right: position.right, bottom: position.bottom, active: false };
+  };
+  moveHandle.addEventListener('pointerdown', startDrag);
   container.addEventListener('pointermove', (event) => {
     if (!dragStart || dragStart.id !== event.pointerId) return;
-    position.right = dragStart.right - (event.clientX - dragStart.x);
-    position.bottom = dragStart.bottom - (event.clientY - dragStart.y);
+    const deltaX = event.clientX - dragStart.x;
+    const deltaY = event.clientY - dragStart.y;
+    if (!dragStart.active && Math.hypot(deltaX, deltaY) < DRAG_THRESHOLD_PX) return;
+    dragStart.active = true;
+    container.dataset.dragging = 'true';
+    position.right = dragStart.right - deltaX;
+    position.bottom = dragStart.bottom - deltaY;
     applyPosition();
   });
   const finishDrag = (event) => {
     if (!dragStart || dragStart.id !== event.pointerId) return;
+    const { active } = dragStart;
     dragStart = null;
-    callbacks.onPositionChange?.({ ...position });
+    delete container.dataset.dragging;
+    if (active) callbacks.onPositionChange?.({ ...position });
   };
   container.addEventListener('pointerup', finishDrag);
   container.addEventListener('pointercancel', finishDrag);
@@ -198,26 +249,9 @@ export function createControlCenter(doc, callbacks = {}) {
     undo.hidden = !show || !showResetView;
   }
 
-  function render({ filter, dim, total, completed, accentColor, controlScale = 100, showHideDone = true, showFadeDone = true, showResetView: nextShowResetView = true, moveMode: nextMoveMode = false, controlDock = 'custom', controlPosition = {}, resetPending = false }) {
-    currentFilter = normalizeFilter(filter);
-    showResetView = nextShowResetView !== false;
-    moveMode = nextMoveMode === true;
-    position = {
-      right: Number.isFinite(Number(controlPosition.right)) ? Math.max(0, Number(controlPosition.right)) : position.right,
-      bottom: Number.isFinite(Number(controlPosition.bottom)) ? Math.max(0, Number(controlPosition.bottom)) : position.bottom
-    };
-    const rect = container.getBoundingClientRect();
-    if (controlDock !== 'custom') {
-      const left = controlDock.endsWith('left');
-      const top = controlDock.startsWith('top');
-      position = {
-        right: left ? Math.max(12, doc.defaultView.innerWidth - rect.width - 12) : 12,
-        bottom: top ? Math.max(12, doc.defaultView.innerHeight - rect.height - 12) : 12
-      };
-    }
-    const pendingOnly = currentFilter === 'pending';
-    const doneOnly = currentFilter === 'done';
-
+  function renderHideButton(filter) {
+    const pendingOnly = filter === 'pending';
+    const doneOnly = filter === 'done';
     hideDone.setAttribute('aria-pressed', String(pendingOnly));
     if (doneOnly) {
       setButtonContent(hideDone, ICONS.eyeOpen, 'Show all');
@@ -230,12 +264,38 @@ export function createControlCenter(doc, callbacks = {}) {
         : 'Hide completed items from this calendar view.';
       hideDone.setAttribute('aria-label', pendingOnly ? 'Show completed calendar items' : 'Hide completed calendar items');
     }
+  }
 
+  function renderFadeButton(dim) {
     fadeDone.setAttribute('aria-pressed', String(Boolean(dim)));
     fadeDone.title = dim
       ? 'Completed items are faded and struck through. Click to show them normally.'
       : 'Make completed items lighter and strike them through. Checkmarks stay saved.';
     fadeDone.setAttribute('aria-label', dim ? 'Stop fading completed items' : 'Fade completed items');
+  }
+
+  function render({ filter, dim, total, completed, accentColor, controlScale = 100, showHideDone = true, showFadeDone = true, showResetView: nextShowResetView = true, moveMode: nextMoveMode = false, controlDock = 'custom', controlPosition = {}, resetPending = false }) {
+    savedFilter = normalizeFilter(filter);
+    savedDim = Boolean(dim);
+    showResetView = nextShowResetView !== false;
+    moveMode = nextMoveMode === true;
+    if (!dragStart) {
+      position = {
+        right: Number.isFinite(Number(controlPosition.right)) ? Math.max(0, Number(controlPosition.right)) : position.right,
+        bottom: Number.isFinite(Number(controlPosition.bottom)) ? Math.max(0, Number(controlPosition.bottom)) : position.bottom
+      };
+      const rect = container.getBoundingClientRect();
+      if (controlDock !== 'custom') {
+        const left = controlDock.endsWith('left');
+        const top = controlDock.startsWith('top');
+        position = {
+          right: left ? Math.max(12, doc.defaultView.innerWidth - rect.width - 12) : 12,
+          bottom: top ? Math.max(12, doc.defaultView.innerHeight - rect.height - 12) : 12
+        };
+      }
+    }
+    renderHideButton(pendingFilter ?? savedFilter);
+    renderFadeButton(pendingDim ?? savedDim);
 
     const progressLabel = `${completed} of ${total} current-view items completed`;
     summary.textContent = `${completed}/${total}`;
