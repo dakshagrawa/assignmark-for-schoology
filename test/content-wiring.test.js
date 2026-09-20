@@ -38,6 +38,14 @@ test('content entrypoint applies the saved accent color to calendar checkboxes a
   assert.match(source, /accentForeground\(settings\.accentColor\)/);
 });
 
+test('Hide and Show preview the calendar before their asynchronous setting save completes', () => {
+  assert.match(source, /function applyState\(id, checked, settings = store\.getSettings\(\)\) \{\s*const appearance = appearanceForItem\(checked, settings\)/);
+  assert.match(source, /function previewFilter\(filter\) \{\s*const settings = \{ \.\.\.store\.getSettings\(\), filter \};\s*for \(const id of registry\.currentScopeIds\(\)\) applyState\(id, store\.isChecked\(id\), settings\);\s*\}/);
+  const filterHandler = source.match(/onFilterChange: async \(filter\) => \{([\s\S]*?)\n    \},\n    onDimChange/)?.[1] || '';
+  assert.match(filterHandler, /previewFilter\(filter\);[\s\S]*await store\.updateSettings\(\{ filter \}\)/);
+  assert.match(filterHandler, /catch \(error\) \{ render\(\); reportError\(error, 'Saving filter failed\.'\); throw error; \}/);
+});
+
 test('content entrypoint removes the calendar-only control center when the calendar leaves the DOM', () => {
   assert.match(source, /if \(!adapter\.isPresent\(\)\) \{\s*controlCenter\?\.destroy\(\);\s*controlCenter = null;\s*return;\s*\}/);
 });

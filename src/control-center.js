@@ -131,7 +131,7 @@ export function createControlCenter(doc, callbacks = {}) {
   const moveOverlay = doc.createElement('div');
   moveOverlay.className = 'sc-cc-move-overlay';
   moveOverlay.hidden = true;
-  moveOverlay.innerHTML = '<button type="button" class="sc-cc-move-handle" aria-label="Drag Assignmark controls">Drag rail</button><button type="button" class="sc-cc-lock">Done</button>';
+  moveOverlay.innerHTML = '<button type="button" class="sc-cc-move-handle" aria-label="Drag Assignmark controls" title="Drag to move Assignmark controls"><svg class="sc-move-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="6" r="1.5"></circle><circle cx="16" cy="6" r="1.5"></circle><circle cx="8" cy="12" r="1.5"></circle><circle cx="16" cy="12" r="1.5"></circle><circle cx="8" cy="18" r="1.5"></circle><circle cx="16" cy="18" r="1.5"></circle></svg></button><button type="button" class="sc-cc-lock" aria-label="Finish moving Assignmark controls" title="Finish moving Assignmark controls"><svg class="sc-lock-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg></button>';
   const moveHandle = moveOverlay.querySelector('.sc-cc-move-handle');
   const lockPosition = moveOverlay.querySelector('.sc-cc-lock');
 

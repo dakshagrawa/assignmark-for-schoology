@@ -151,16 +151,22 @@ test('accent foreground remains readable for light and dark custom colors', () =
   assert.equal(accentForeground('#777777'), '#000000');
 });
 
-test('accent color defaults, normalizes, and rejects unsafe CSS values', async () => {
+test('accent color defaults, upgrades the legacy default, normalizes, and rejects unsafe CSS values', async () => {
   const store = new ExtensionStore(new MemoryStorageArea());
   await store.initialize();
-  assert.equal(store.getSettings().accentColor, '#0a84ff');
+  assert.equal(store.getSettings().accentColor, '#006bbd');
+
+  const legacyDefaultStore = new ExtensionStore(new MemoryStorageArea({
+    scCalendarData: { states: {}, settings: { accentColor: '#0a84ff' }, idMap: {} }
+  }));
+  await legacyDefaultStore.initialize();
+  assert.equal(legacyDefaultStore.getSettings().accentColor, '#006bbd');
 
   await store.updateSettings({ accentColor: '#FF2D55' });
   assert.equal(store.getSettings().accentColor, '#ff2d55');
 
   await store.updateSettings({ accentColor: 'url(https://example.com)' });
-  assert.equal(store.getSettings().accentColor, '#0a84ff');
+  assert.equal(store.getSettings().accentColor, '#006bbd');
 });
 
 test('filter setting migrates legacy hide and rejects invalid values', async () => {

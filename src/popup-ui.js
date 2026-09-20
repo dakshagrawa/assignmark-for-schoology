@@ -1,7 +1,7 @@
 import { accentForeground } from './core.js';
 
 const ACCENT_SWATCHES = Object.freeze([
-  '#0a84ff',
+  '#006bbd',
   '#0078d4',
   '#5856d6',
   '#af52de',
@@ -155,7 +155,7 @@ export function createSettingsPopup(doc, callbacks = {}) {
     currentDim = Boolean(settings.dim);
     const accentColor = /^#[0-9a-f]{6}$/i.test(String(settings.accentColor || ''))
       ? String(settings.accentColor).toLowerCase()
-      : '#0a84ff';
+      : '#006bbd';
 
     for (const button of filterButtons) {
       button.setAttribute('aria-pressed', String(button.dataset.filter === filter));

@@ -116,14 +116,19 @@ function readLegacyData() {
   };
 }
 
-function applyState(id, checked) {
-  const appearance = appearanceForItem(checked, store.getSettings());
+function applyState(id, checked, settings = store.getSettings()) {
+  const appearance = appearanceForItem(checked, settings);
   for (const element of registry.occurrences(id)) {
     element.classList.toggle('sc-checked-dim', appearance.dimmed);
     element.classList.toggle('sc-filtered-out', !appearance.visible);
     const checkbox = element.querySelector('.sc-cal-left-checkbox');
     if (checkbox instanceof HTMLInputElement) checkbox.checked = checked;
   }
+}
+
+function previewFilter(filter) {
+  const settings = { ...store.getSettings(), filter };
+  for (const id of registry.currentScopeIds()) applyState(id, store.isChecked(id), settings);
 }
 
 function render() {
@@ -191,8 +196,9 @@ function ensureControlCenter() {
   if (controlCenter) return;
   controlCenter = createControlCenter(document, {
     onFilterChange: async (filter) => {
+      previewFilter(filter);
       try { await store.updateSettings({ filter }); render(); }
-      catch (error) { reportError(error, 'Saving filter failed.'); throw error; }
+      catch (error) { render(); reportError(error, 'Saving filter failed.'); throw error; }
     },
     onDimChange: async (dim) => {
       try { await store.updateSettings({ dim }); render(); }

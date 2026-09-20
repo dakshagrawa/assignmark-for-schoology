@@ -889,7 +889,7 @@
   var FILTER_MODES = Object.freeze(["all", "pending", "done"]);
   var CONTROL_SCALE_RANGE = Object.freeze({ min: 80, max: 120, step: 5 });
   var CONTROL_DOCKS = Object.freeze(["top-left", "top-right", "bottom-left", "bottom-right", "custom"]);
-  var DEFAULT_SETTINGS = Object.freeze({ hide: false, dim: true, filter: "all", accentColor: "#0a84ff", controlScale: 100, showHideDone: true, showFadeDone: true, showResetView: true, moveMode: false, controlDock: "bottom-right", controlPosition: Object.freeze({ right: 12, bottom: 70 }) });
+  var DEFAULT_SETTINGS = Object.freeze({ hide: false, dim: true, filter: "all", accentColor: "#006bbd", controlScale: 100, showHideDone: true, showFadeDone: true, showResetView: true, moveMode: false, controlDock: "bottom-right", controlPosition: Object.freeze({ right: 12, bottom: 70 }) });
   function accentForeground(value) {
     const match = /^#([0-9a-f]{6})$/i.exec(String(value || ""));
     if (!match) return "#ffffff";
@@ -992,7 +992,7 @@
 
   // src/popup-ui.js
   var ACCENT_SWATCHES = Object.freeze([
-    "#0a84ff",
+    "#006bbd",
     "#0078d4",
     "#5856d6",
     "#af52de",
@@ -1140,7 +1140,7 @@
     function render({ settings = {}, checkedCount = 0, canUndo = false, resetPending = false } = {}) {
       const filter = ["all", "pending", "done"].includes(settings.filter) ? settings.filter : "all";
       currentDim = Boolean(settings.dim);
-      const accentColor = /^#[0-9a-f]{6}$/i.test(String(settings.accentColor || "")) ? String(settings.accentColor).toLowerCase() : "#0a84ff";
+      const accentColor = /^#[0-9a-f]{6}$/i.test(String(settings.accentColor || "")) ? String(settings.accentColor).toLowerCase() : "#006bbd";
       for (const button of filterButtons) {
         button.setAttribute("aria-pressed", String(button.dataset.filter === filter));
       }
@@ -1367,7 +1367,7 @@
       themeMode: "auto",
       format: "hex",
       alpha: false,
-      swatches: ["#0a84ff", "#0078d4", "#5856d6", "#af52de", "#ff2d55", "#30b866"]
+      swatches: ["#006bbd", "#0078d4", "#5856d6", "#af52de", "#ff2d55", "#30b866"]
     });
     document.querySelector("#app")?.setAttribute("aria-busy", "false");
   }

@@ -101,6 +101,23 @@ test('control center DOM component renders progress and focused calendar actions
   assert.ok(element.querySelector('[data-role="undo"]'));
 });
 
+test('move mode uses separate floating icons instead of a mini-window', () => {
+  const dom = new JSDOM('<!doctype html><body></body>');
+  const controlCenter = createControlCenter(dom.window.document, {});
+  const handle = controlCenter.element.querySelector('.sc-cc-move-handle');
+  const lock = controlCenter.element.querySelector('.sc-cc-lock');
+
+  assert.ok(handle);
+  assert.equal(handle.textContent.trim(), '');
+  assert.equal(handle.getAttribute('aria-label'), 'Drag Assignmark controls');
+  assert.equal(handle.title, 'Drag to move Assignmark controls');
+  assert.ok(handle.querySelector('svg.sc-move-icon[aria-hidden="true"]'));
+  assert.ok(lock);
+  assert.equal(lock.textContent.trim(), '');
+  assert.equal(lock.getAttribute('aria-label'), 'Finish moving Assignmark controls');
+  assert.ok(lock.querySelector('svg.sc-lock-icon[aria-hidden="true"]'));
+});
+
 test('calendar rail detects dark Schoology surfaces from their computed color', () => {
   assert.equal(isDarkColor('rgb(48, 51, 57)'), true);
   assert.equal(isDarkColor('rgba(39, 39, 41, 0.9)'), true);

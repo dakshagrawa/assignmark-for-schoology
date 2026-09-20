@@ -1,33 +1,36 @@
 .sc-cal-left-wrapper { display:inline-flex; align-items:center; gap:6px; margin-right:6px; vertical-align:middle; }
-.sc-cal-left-checkbox { width:14px; height:14px; margin:0; padding:0; cursor:pointer; accent-color:var(--sc-assignmark-accent,#0a84ff); border-radius:2px; }
+.sc-cal-left-checkbox { width:14px; height:14px; margin:0; padding:0; cursor:pointer; accent-color:var(--sc-assignmark-accent,#006bbd); border-radius:2px; }
 .sc-cal-left-checkbox:focus-visible, .sc-cc button:focus-visible { outline:3px solid #ffbf47; outline-offset:2px; }
-.sc-checked-dim { opacity:.48 !important; color:#606060 !important; text-decoration:line-through !important; transition:none !important; }
+.sc-checked-dim { opacity:.48 !important; color:#424245 !important; text-decoration:line-through !important; transition:none !important; }
 .sc-filtered-out { display:none !important; transition:none !important; }
 
-/* v2.0-style calendar rail: opaque, compact tiles—not a glass overlay. */
-.sc-cc { position:fixed; right:var(--sc-control-right,12px); bottom:var(--sc-control-bottom,70px); z-index:2147483000; box-sizing:border-box; width:calc(52px * var(--sc-control-scale,1)); max-height:calc(100vh - 16px); display:flex; flex-direction:column; gap:8px; align-items:center; overflow:visible; padding:0; color:#444; font:11px/1 system-ui,-apple-system,"SF Pro Text","Segoe UI",sans-serif; scrollbar-width:none; --sc-surface:#fff; --sc-surface-hover:#fafafa; --sc-border:#e6e6e6; --sc-shadow:0 6px 18px rgba(0,0,0,.08); }
+/* Compact, borderless calendar rail with a solid high-contrast surface. */
+.sc-cc { position:fixed; right:var(--sc-control-right,12px); bottom:var(--sc-control-bottom,70px); z-index:2147483000; box-sizing:border-box; width:calc(52px * var(--sc-control-scale,1)); max-height:calc(100vh - 16px); display:flex; flex-direction:column; gap:8px; align-items:center; overflow:visible; padding:0; color:#1d1d1f; font:11px/1 system-ui,-apple-system,"SF Pro Text","Segoe UI",sans-serif; scrollbar-width:none; --sc-surface:#fff; --sc-surface-hover:#f5f5f7; --sc-shadow:0 6px 18px rgba(0,0,0,.08); }
 .sc-cc::-webkit-scrollbar { display:none; }
-.sc-cc-summary { box-sizing:border-box; width:44px; min-height:22px; padding:5px 3px; border:1px solid var(--sc-border); border-radius:999px; background:var(--sc-surface); box-shadow:0 3px 10px rgba(0,0,0,.06); font-size:10px; font-weight:650; letter-spacing:-.12px; text-align:center; }
-.sc-cc .sc-icon-btn { box-sizing:border-box; width:calc(52px * var(--sc-control-scale,1)); height:calc(52px * var(--sc-control-scale,1)); min-width:calc(52px * var(--sc-control-scale,1)); min-height:calc(52px * var(--sc-control-scale,1)); padding:5px 2px; display:inline-flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; border:1px solid var(--sc-border); border-radius:10px; background:var(--sc-surface); color:inherit; box-shadow:var(--sc-shadow); cursor:pointer; font:inherit; letter-spacing:0; text-align:center; transition:transform .14s ease,background-color .14s ease,box-shadow .14s ease; }
+.sc-cc-summary { box-sizing:border-box; width:44px; min-height:22px; padding:5px 3px; border:0; border-radius:999px; background:var(--sc-surface); box-shadow:0 3px 10px rgba(0,0,0,.06); font-size:10px; font-weight:650; letter-spacing:-.12px; text-align:center; }
+.sc-cc .sc-icon-btn { box-sizing:border-box; width:calc(52px * var(--sc-control-scale,1)); height:calc(52px * var(--sc-control-scale,1)); min-width:calc(52px * var(--sc-control-scale,1)); min-height:calc(52px * var(--sc-control-scale,1)); padding:5px 2px; display:inline-flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; border:0; border-radius:14px; background:var(--sc-surface); color:inherit; box-shadow:var(--sc-shadow); cursor:pointer; font:inherit; letter-spacing:0; text-align:center; transition:transform .14s ease,background-color .14s ease,box-shadow .14s ease; }
 .sc-cc .sc-icon-btn:hover:not(:disabled) { background:var(--sc-surface-hover); transform:translateY(-1px); box-shadow:0 8px 20px rgba(0,0,0,.12); }
 .sc-cc .sc-icon-btn:active:not(:disabled) { transform:scale(.97); }
 .sc-cc .sc-icon-btn:disabled { cursor:not-allowed; opacity:.42; box-shadow:0 3px 10px rgba(0,0,0,.06); }
-.sc-cc button[aria-pressed=true] { border-color:transparent; background:var(--sc-assignmark-accent,#0a84ff); color:var(--sc-assignmark-accent-foreground,#fff); }
+.sc-cc button[aria-pressed=true] { background:var(--sc-assignmark-accent,#006bbd); color:var(--sc-assignmark-accent-foreground,#fff); }
 .sc-cc .sc-icon-btn svg { width:20px; height:20px; flex:0 0 auto; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
 .sc-cc .sc-icon-btn svg .sc-icon-fill { fill:currentColor; stroke:none; opacity:.26; }
 .sc-cc .sc-label { max-width:46px; color:inherit; white-space:nowrap; }
 .sc-cc [hidden] { display:none !important; }
 
-.sc-cc-dark { color:#e8e8ea; --sc-surface:#2d2d30; --sc-surface-hover:#38383c; --sc-border:#48484d; --sc-shadow:0 6px 18px rgba(0,0,0,.3); }
-@media (prefers-color-scheme:dark) { .sc-cc:not(.sc-cc-light) { color:#e8e8ea; --sc-surface:#2d2d30; --sc-surface-hover:#38383c; --sc-border:#48484d; --sc-shadow:0 6px 18px rgba(0,0,0,.3); } }
+.sc-cc-dark { color:#f5f5f7; --sc-surface:#2d2d30; --sc-surface-hover:#3a3a3e; --sc-shadow:0 6px 18px rgba(0,0,0,.3); }
+@media (prefers-color-scheme:dark) { .sc-cc:not(.sc-cc-light) { color:#f5f5f7; --sc-surface:#2d2d30; --sc-surface-hover:#3a3a3e; --sc-shadow:0 6px 18px rgba(0,0,0,.3); } }
 
 .sc-cal-error { position:fixed; left:50%; bottom:20px; z-index:2147483647; transform:translateX(-50%); max-width:min(90vw,520px); padding:10px 14px; border-radius:8px; color:#fff; background:#a4262c; box-shadow:0 4px 12px rgba(0,0,0,.25); font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif; }
-.sc-cal-notice { position:fixed; left:50%; bottom:20px; z-index:2147483647; transform:translateX(-50%); max-width:min(90vw,520px); padding:10px 14px; border-radius:999px; color:var(--sc-assignmark-accent-foreground,#fff); background:color-mix(in srgb,var(--sc-assignmark-accent,#0a84ff) 86%,#000); box-shadow:0 6px 24px rgba(0,0,0,.22); font:600 13px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif; text-align:center; pointer-events:none; }
+.sc-cal-notice { position:fixed; left:50%; bottom:20px; z-index:2147483647; transform:translateX(-50%); max-width:min(90vw,520px); padding:10px 14px; border-radius:999px; color:var(--sc-assignmark-accent-foreground,#fff); background:color-mix(in srgb,var(--sc-assignmark-accent,#006bbd) 86%,#000); box-shadow:0 6px 24px rgba(0,0,0,.22); font:600 13px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif; text-align:center; pointer-events:none; }
 /* Move mode is a small opaque tool palette beside the rail—not a blurred cover. */
-.sc-cc-move-overlay { position:absolute; right:calc(100% + 8px); left:auto; bottom:0; z-index:4; display:grid; gap:6px; box-sizing:border-box; width:min(108px,calc(100vw - 72px)); padding:7px; border:1px solid var(--sc-border); border-radius:10px; background:var(--sc-surface); box-shadow:0 8px 20px rgba(0,0,0,.14); }
+.sc-cc-move-overlay { position:absolute; right:calc(100% + 8px); left:auto; bottom:0; z-index:4; display:flex; flex-direction:column; align-items:center; gap:6px; width:44px; padding:0; border:0; background:transparent; box-shadow:none; }
 .sc-cc-move-overlay[hidden] { display:none !important; }
-.sc-cc-move-overlay button { min-height:30px; padding:0 8px; border:1px solid var(--sc-border); border-radius:7px; background:var(--sc-surface-hover); color:inherit; font:600 10px/1 system-ui,-apple-system,"SF Pro Text","Segoe UI",sans-serif; cursor:pointer; }
-.sc-cc-move-handle { min-height:44px !important; touch-action:none; cursor:grab !important; }
+.sc-cc-move-overlay button { display:grid; place-items:center; width:44px; min-height:44px; padding:0; border:0; border-radius:12px; background:var(--sc-surface); color:inherit; box-shadow:var(--sc-shadow); cursor:pointer; }
+.sc-cc-move-handle { width:44px; min-height:44px; border-radius:12px; touch-action:none; cursor:grab !important; }
+.sc-cc-move-overlay svg { width:20px; height:20px; }
+.sc-cc-move-handle .sc-move-icon { fill:currentColor; }
+.sc-cc-lock .sc-lock-icon { fill:none; stroke:currentColor; stroke-width:2.25; stroke-linecap:round; stroke-linejoin:round; }
 .sc-cc-move-handle:active { cursor:grabbing !important; }
 .sc-cc-move-overlay button:focus-visible { outline:3px solid #ffbf47; outline-offset:2px; }
 .sc-cc-moving { cursor:default; }

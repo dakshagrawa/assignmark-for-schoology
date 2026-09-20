@@ -5,7 +5,7 @@
   var FILTER_MODES = Object.freeze(["all", "pending", "done"]);
   var CONTROL_SCALE_RANGE = Object.freeze({ min: 80, max: 120, step: 5 });
   var CONTROL_DOCKS = Object.freeze(["top-left", "top-right", "bottom-left", "bottom-right", "custom"]);
-  var DEFAULT_SETTINGS = Object.freeze({ hide: false, dim: true, filter: "all", accentColor: "#0a84ff", controlScale: 100, showHideDone: true, showFadeDone: true, showResetView: true, moveMode: false, controlDock: "bottom-right", controlPosition: Object.freeze({ right: 12, bottom: 70 }) });
+  var DEFAULT_SETTINGS = Object.freeze({ hide: false, dim: true, filter: "all", accentColor: "#006bbd", controlScale: 100, showHideDone: true, showFadeDone: true, showResetView: true, moveMode: false, controlDock: "bottom-right", controlPosition: Object.freeze({ right: 12, bottom: 70 }) });
   var LEGACY_KEYS = Object.freeze({
     states: "sc_cal_checkbox_states_calendar_only",
     settings: "sc_cal_checkbox_settings_calendar_only",
@@ -65,7 +65,8 @@
   function normalizeSettings(value) {
     const settings = cleanRecord(value);
     const filter = FILTER_MODES.includes(settings.filter) ? settings.filter : settings.hide ? "pending" : "all";
-    const accentColor = /^#[0-9a-f]{6}$/i.test(String(settings.accentColor || "")) ? String(settings.accentColor).toLowerCase() : DEFAULT_SETTINGS.accentColor;
+    const requestedAccent = String(settings.accentColor || "").toLowerCase();
+    const accentColor = requestedAccent === "#0a84ff" ? DEFAULT_SETTINGS.accentColor : /^#[0-9a-f]{6}$/i.test(requestedAccent) ? requestedAccent : DEFAULT_SETTINGS.accentColor;
     const controlScale = Number.isFinite(Number(settings.controlScale)) ? Math.min(CONTROL_SCALE_RANGE.max, Math.max(CONTROL_SCALE_RANGE.min, Math.round(Number(settings.controlScale) / CONTROL_SCALE_RANGE.step) * CONTROL_SCALE_RANGE.step)) : DEFAULT_SETTINGS.controlScale;
     const rawPosition = cleanRecord(settings.controlPosition);
     const controlDock = CONTROL_DOCKS.includes(settings.controlDock) ? settings.controlDock : DEFAULT_SETTINGS.controlDock;

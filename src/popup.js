@@ -24,7 +24,7 @@ async function start() {
     themeMode: 'auto',
     format: 'hex',
     alpha: false,
-    swatches: ['#0a84ff', '#0078d4', '#5856d6', '#af52de', '#ff2d55', '#30b866']
+    swatches: ['#006bbd', '#0078d4', '#5856d6', '#af52de', '#ff2d55', '#30b866']
   });
   document.querySelector('#app')?.setAttribute('aria-busy', 'false');
 }

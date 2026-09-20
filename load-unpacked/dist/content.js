@@ -5,7 +5,7 @@
   var FILTER_MODES = Object.freeze(["all", "pending", "done"]);
   var CONTROL_SCALE_RANGE = Object.freeze({ min: 80, max: 120, step: 5 });
   var CONTROL_DOCKS = Object.freeze(["top-left", "top-right", "bottom-left", "bottom-right", "custom"]);
-  var DEFAULT_SETTINGS = Object.freeze({ hide: false, dim: true, filter: "all", accentColor: "#0a84ff", controlScale: 100, showHideDone: true, showFadeDone: true, showResetView: true, moveMode: false, controlDock: "bottom-right", controlPosition: Object.freeze({ right: 12, bottom: 70 }) });
+  var DEFAULT_SETTINGS = Object.freeze({ hide: false, dim: true, filter: "all", accentColor: "#006bbd", controlScale: 100, showHideDone: true, showFadeDone: true, showResetView: true, moveMode: false, controlDock: "bottom-right", controlPosition: Object.freeze({ right: 12, bottom: 70 }) });
   function accentForeground(value) {
     const match = /^#([0-9a-f]{6})$/i.exec(String(value || ""));
     if (!match) return "#ffffff";
@@ -401,7 +401,7 @@
     const moveOverlay = doc.createElement("div");
     moveOverlay.className = "sc-cc-move-overlay";
     moveOverlay.hidden = true;
-    moveOverlay.innerHTML = '<button type="button" class="sc-cc-move-handle" aria-label="Drag Assignmark controls">Drag rail</button><button type="button" class="sc-cc-lock">Done</button>';
+    moveOverlay.innerHTML = '<button type="button" class="sc-cc-move-handle" aria-label="Drag Assignmark controls" title="Drag to move Assignmark controls"><svg class="sc-move-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="6" r="1.5"></circle><circle cx="16" cy="6" r="1.5"></circle><circle cx="8" cy="12" r="1.5"></circle><circle cx="16" cy="12" r="1.5"></circle><circle cx="8" cy="18" r="1.5"></circle><circle cx="16" cy="18" r="1.5"></circle></svg></button><button type="button" class="sc-cc-lock" aria-label="Finish moving Assignmark controls" title="Finish moving Assignmark controls"><svg class="sc-lock-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg></button>';
     const moveHandle = moveOverlay.querySelector(".sc-cc-move-handle");
     const lockPosition = moveOverlay.querySelector(".sc-cc-lock");
     hideDone.title = "Hide completed items from this calendar view.";
@@ -826,14 +826,18 @@
       idMap: parse(LEGACY_KEYS2.idMap)
     };
   }
-  function applyState(id, checked) {
-    const appearance = appearanceForItem(checked, store.getSettings());
+  function applyState(id, checked, settings = store.getSettings()) {
+    const appearance = appearanceForItem(checked, settings);
     for (const element of registry.occurrences(id)) {
       element.classList.toggle("sc-checked-dim", appearance.dimmed);
       element.classList.toggle("sc-filtered-out", !appearance.visible);
       const checkbox = element.querySelector(".sc-cal-left-checkbox");
       if (checkbox instanceof HTMLInputElement) checkbox.checked = checked;
     }
+  }
+  function previewFilter(filter) {
+    const settings = { ...store.getSettings(), filter };
+    for (const id of registry.currentScopeIds()) applyState(id, store.isChecked(id), settings);
   }
   function render() {
     const settings = store.getSettings();
@@ -898,10 +902,12 @@
     if (controlCenter) return;
     controlCenter = createControlCenter(document, {
       onFilterChange: async (filter) => {
+        previewFilter(filter);
         try {
           await store.updateSettings({ filter });
           render();
         } catch (error) {
+          render();
           reportError(error, "Saving filter failed.");
           throw error;
         }
